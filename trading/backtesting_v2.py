@@ -228,7 +228,7 @@ def backtest_v2(
                 pnl = (exit_price_raw - state.entry) * exec_qty if is_long else (state.entry - exit_price_raw) * exec_qty
 
                 # Apply costs as percentage of PNL (matches vectorized approach)
-                pnl -= abs(pnl) * (bt.commission_rate + bt.slippage_rate)
+                pnl -= exit_price_raw * exec_qty * (bt.commission_rate + bt.slippage_rate)
 
                 equity += pnl
                 trade_pnls.append(pnl)
@@ -256,7 +256,7 @@ def backtest_v2(
 
                     # FIX BUG 1: Apply costs correctly (no double cost application)
                     pnl = (exit_price_raw - state.entry) * exec_qty if is_long else (state.entry - exit_price_raw) * exec_qty
-                    pnl -= abs(pnl) * (bt.commission_rate + bt.slippage_rate)
+                    pnl -= exit_price_raw * exec_qty * (bt.commission_rate + bt.slippage_rate)
 
                     equity += pnl
                     trade_pnls.append(pnl)
