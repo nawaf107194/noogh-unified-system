@@ -503,7 +503,7 @@ class SignalEngineV2:
                 is_buy_exhaustion = (delta_prev > 0) and (abs(delta_prev) > 1.8 * delta_avg_prev)
                 is_sell_reversal = (delta_curr < 0)
 
-                if bear_sweep_prev and is_buy_exhaustion and is_sell_reversal:_trend != "BULLISH":
+                if bear_sweep_prev and is_buy_exhaustion and is_sell_reversal:
                     signal = "SHORT"
                     score = 100
                     reasons.append("🪤 Liquidity Trap SHORT: Sweep + Buy Exhaustion + Sell Reversal")
