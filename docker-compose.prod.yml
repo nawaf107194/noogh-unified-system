@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # 1. Redis Service - قاعدة البيانات في الذاكرة
+  # ═══════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: noogh-prod-redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - noogh-prod-net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # 2. Gateway Service - البوابة الرئيسية
+  # ═══════════════════════════════════════════════════════════════
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.noogh
+    container_name: noogh-prod-gateway
+    restart: always
+    env_file: .env
+
+    # Use host network for direct access to Neural Engine on host
+    network_mode: host
+
+    environment:
+      - NOOGH_ENV=production
+      - NOOGH_DATA_DIR=/app/data
+      - REDIS_URL=redis://127.0.0.1:6379/0
+      - NOOGH_HOST=0.0.0.0
+      - NOOGH_PORT=8001
+      # Neural Engine authentication and URLs
+      - NOOGH_INTERNAL_TOKEN=${NOOGH_INTERNAL_TOKEN:-noogh-internal-secret}
+      - NEURAL_SERVICE_URL=http://127.0.0.1:8000
+      - NEURAL_ENGINE_URL=http://127.0.0.1:8000
+      - NEURAL_URL=http://127.0.0.1:8000
+
+    # GPU access for nvidia-smi stats
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu, utility ]
+
+    volumes:
+      - noogh_data:/app/data
+      - ./logs/gateway:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock # Container control
+    # ports not needed with network_mode: host
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn gateway.app.main:app --host 0.0.0.0 --port 8001 --no-access-log
+
+  # ═══════════════════════════════════════════════════════════════
+  # 3. Neural Engine - محرك الذكاء الاصطناعي 🧠
+  # ═══════════════════════════════════════════════════════════════
+  neural_api:
+    image: src-neural_api
+    build:
+      context: .
+      dockerfile: Dockerfile.neural
+    container_name: noogh-prod-neural
+    privileged: true
+    restart: always
+
+    # 🧠 إعدادات الذاكرة المشتركة (مهم لـ PyTorch)
+    shm_size: '8gb'
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    env_file: .env
+    environment:
+      - NOOGH_ENV=production
+      - PORT=8000
+
+      # 🎯 إعدادات GPU و CUDA
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+      # 📚 مسارات المكتبات (الحل الشامل)
+      - LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:/usr/local/cuda/lib64:/usr/lib/x86_64-linux-64:/usr/local/lib
+
+      # ⚡ تحسينات PyTorch - حدود أكثر صرامة
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:256,expandable_segments:True
+      - CUDA_LAUNCH_BLOCKING=0
+
+      # 📦 HuggingFace cache (use host cache)
+      - HF_HOME=/home/neural/.cache/huggingface
+      - TRANSFORMERS_CACHE=/home/neural/.cache/huggingface/hub
+
+      # 🔧 تصحيح المسارات للبيئة الداخلية
+      - NOOGH_MODEL=/app/models/qwen2.5-7b-instruct
+      - NOOGH_LORA_ADAPTER=/app/models/noogh_sovereign_7b_v1/checkpoint-6060
+      - MAX_MODEL_MEMORY_GB=7
+      - LAZY_LOAD_MODELS=true
+      - MAX_MODEL_SIZE_GB=8
+
+    # 🎮 تفعيل GPU عبر Docker Runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    volumes:
+      - noogh_data:/app/data
+      - ./models:/app/models
+      - /home/noogh/.cache/huggingface:/home/neural/.cache/huggingface
+    ports:
+      - "8000:8000"
+    networks:
+      - noogh-prod-net
+
+    # 🚀 أمر التشغيل الفعلي
+    command: uvicorn neural_engine.api.main:app --host 0.0.0.0 --port 8000 --workers 1
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# ═══════════════════════════════════════════════════════════════
+# Volumes - التخزين الدائم
+# ═══════════════════════════════════════════════════════════════
+volumes:
+  redis_data:
+    driver: local
+  noogh_data:
+    driver: local
+
+# ═══════════════════════════════════════════════════════════════
+# Networks - الشبكة الداخلية
+# ═══════════════════════════════════════════════════════════════
+networks:
+  noogh-prod-net:
+    driver: bridge

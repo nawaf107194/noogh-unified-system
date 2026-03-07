@@ -1,0 +1,308 @@
+import os
+from typing import Any, Callable, Dict, Optional
+
+from gateway.app.core.auth import AuthContext
+from gateway.app.core.logging import get_logger
+from gateway.app.core.skills import get_skills_instance
+
+logger = get_logger("tool_registry")
+
+
+class ToolRegistry:
+    def __init__(self, kernel=None, data_dir: Optional[str] = None):
+        self._tools: Dict[str, Callable] = {}
+        self._tool_descriptions: Dict[str, str] = {}
+        self.kernel = kernel
+        self.data_dir = data_dir
+        self.skills = get_skills_instance(data_dir=data_dir)
+        self._register_defaults()
+
+    def register(self, name: str, func: Callable, description: str = ""):
+        self._tools[name] = func
+        self._tool_descriptions[name] = description
+
+    def list_tools(self) -> Dict[str, str]:
+        return self._tool_descriptions
+
+    def get(self, name: str) -> Optional[Callable]:
+        return self._tools.get(name)
+
+    def execute(self, name: str, auth: AuthContext = None, **kwargs) -> Dict[str, Any]:
+        """Alias for execute_tool for backward compatibility."""
+        return self.execute_tool(name, auth=auth, **kwargs)
+
+    def execute_tool(self, name: str, auth: AuthContext = None, **kwargs) -> Dict[str, Any]:
+        import asyncio
+        import inspect
+        import time
+
+        tool_func = self.get(name)
+        if not tool_func:
+            return {"success": False, "error": f"Tool '{name}' not found.", "execution_time_ms": 0}
+
+        start_time = time.time()
+        try:
+            # Execute tool (bridge sync to async if needed)
+            result = tool_func(**kwargs)
+
+            # If the tool returned a coroutine, we must run it
+            if inspect.iscoroutine(result):
+                try:
+                    # If we're already in a loop, we can't use run().
+                    # But Noogh is often called from a thread or fresh env.
+                    result = asyncio.run(result)
+                except RuntimeError:
+                    # Fallback for when loop is already running
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # This case is bad for sync code, but we try a bridge
+                        logger.warning(f"Tool {name} is async but called from running loop. Blocking execution.")
+                        # Note: This might deadlock if not careful.
+                        # In production FastAPI, 'process' usually runs in an external thread.
+                        import concurrent.futures
+
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(asyncio.run, tool_func(**kwargs))
+                            result = future.result()
+                    else:
+                        result = loop.run_until_complete(result)
+
+            execution_time = (time.time() - start_time) * 1000
+            if isinstance(result, dict):
+                result["execution_time_ms"] = result.get("execution_time_ms", execution_time)
+                return result
+            return {"success": True, "output": str(result), "execution_time_ms": execution_time}
+        except Exception as e:
+            logger.error(f"Tool {name} execution failed: {e}", exc_info=True)
+            return {"success": False, "error": str(e), "execution_time_ms": (time.time() - start_time) * 1000}
+
+    def _read_file(self, path: str) -> Dict[str, Any]:
+        """Read file with budget enforcement."""
+        if self.kernel and hasattr(self.kernel, "budget"):
+            # Check if file exists to get size
+            if os.path.exists(path):
+                size = os.path.getsize(path)
+                if self.kernel.budget.max_bytes_read < size:
+                    return {
+                        "success": False,
+                        "error": f"Read budget exceeded: File size {size} > {self.kernel.budget.max_bytes_read}",
+                    }
+
+        return self.skills.read_file(path)
+
+    def _register_defaults(self):
+        def safe_exec_python(code: str) -> Dict[str, Any]:
+            # P1.8: Static Security Analysis (AST)
+            # Replaces bypassable Regex checks with structural validation
+            from gateway.app.core.ast_validator import validate_code
+            
+            is_safe, security_error = validate_code(code)
+            if not is_safe:
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Security Violation: {security_error}",
+                    "execution_time_ms": 0,
+                }
+
+            if self.kernel and self.kernel.sandbox_service:
+                try:
+                    result = self.kernel.sandbox_service.execute_code(code)
+                    if result.get("success") or not result.get("error", "").startswith("Sandbox Service"):
+                        return {
+                            "success": result["success"],
+                            "output": result.get("output", ""),
+                            "error": result.get("error", ""),
+                            "execution_time_ms": result.get("duration_ms", 0),
+                        }
+                    # Sandbox returned error but we do NOT fallback
+                    logger.error(f"Sandbox execution failed: {result.get('error')}")
+                    return {
+                        "success": False, 
+                        "output": "", 
+                        "error": "Sandbox Unavailable. Execution Blocked.",
+                        "execution_time_ms": 0
+                    }
+                except Exception as e:
+                    logger.error(f"Sandbox connection failed: {e}")
+                    return {
+                        "success": False, 
+                        "output": "", 
+                        "error": "Sandbox Unavailable. Execution Blocked.",
+                        "execution_time_ms": 0
+                    }
+            
+            # Use of `skills.run_python_code` is DEPRECATED and REMOVED for security.
+            # If no sandbox is configured, we block execution.
+            return {
+                "success": False, 
+                "output": "", 
+                "error": "Sandbox Not Configured. Execution Blocked.",
+                "execution_time_ms": 0
+            }
+
+        self.register("exec_python", safe_exec_python, "Execute Python code.")
+        self.register("read_file", self._read_file, "Read file.")
+        self.register("write_file", self.skills.write_file, "Write file.")
+        self.register("list_files", self.skills.list_files, "List files.")
+        self.register("repo_overview", self.skills.repo_overview, "Repo overview.")
+        self.register("find_entrypoints", self.skills.find_entrypoints, "Find entrypoints.")
+        self.register("search_code", self.skills.search_code, "Search code.")
+        self.register("run_tests", self.skills.run_tests, "Run tests.")
+        self.register("git_status", self.skills.git_status, "Git status.")
+        self.register("git_diff", self.skills.git_diff, "Git diff.")
+        # Legacy plan tools
+        self.register("create_plan", self.skills.create_plan, "Create Plan.")
+
+        # =================================================================
+        # أدوات النظام بصلاحيات كاملة - Full System Access Tools
+        # =================================================================
+        
+        def read_system_file(path: str) -> Dict[str, Any]:
+            """قراءة ملف نظام بدون قيود - للمدير فقط"""
+            try:
+                if os.path.isdir(path):
+                    # إذا كان مجلداً، نعيد قائمة الملفات
+                    files = os.listdir(path)
+                    return {"success": True, "content": "\n".join(files), "type": "directory", "count": len(files)}
+                
+                with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+                return {"success": True, "content": content, "size": len(content), "path": path}
+            except PermissionError:
+                return {"success": False, "error": f"Permission denied: {path}"}
+            except FileNotFoundError:
+                return {"success": False, "error": f"File not found: {path}"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        def write_system_file(path: str, content: str) -> Dict[str, Any]:
+            """كتابة ملف نظام بدون قيود - للمدير فقط"""
+            try:
+                # إنشاء المجلد إذا لم يكن موجوداً
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                return {"success": True, "path": path, "size": len(content), "message": f"تم كتابة {len(content)} حرف"}
+            except PermissionError:
+                return {"success": False, "error": f"Permission denied: {path}"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        def system_shell(command: str) -> Dict[str, Any]:
+            """تنفيذ أمر shell بصلاحيات كاملة - للمدير فقط"""
+            import subprocess
+            try:
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    cwd=os.path.expanduser("~")
+                )
+                return {
+                    "success": result.returncode == 0,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "return_code": result.returncode,
+                    "command": command
+                }
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Command timed out after 60 seconds"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        def get_system_info() -> Dict[str, Any]:
+            """الحصول على معلومات النظام الكاملة"""
+            try:
+                import psutil
+                return {
+                    "success": True,
+                    "cpu": {
+                        "percent": psutil.cpu_percent(interval=0.1),
+                        "cores": psutil.cpu_count(),
+                        "freq": psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None
+                    },
+                    "memory": {
+                        "total": psutil.virtual_memory().total,
+                        "available": psutil.virtual_memory().available,
+                        "percent": psutil.virtual_memory().percent
+                    },
+                    "disk": {
+                        "total": psutil.disk_usage('/').total,
+                        "used": psutil.disk_usage('/').used,
+                        "free": psutil.disk_usage('/').free,
+                        "percent": psutil.disk_usage('/').percent
+                    },
+                    "boot_time": psutil.boot_time()
+                }
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        def list_processes() -> Dict[str, Any]:
+            """عرض قائمة العمليات الجارية"""
+            try:
+                import psutil
+                processes = []
+                for proc in psutil.process_iter(['pid', 'name', 'username', 'memory_percent', 'cpu_percent']):
+                    try:
+                        processes.append(proc.info)
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                # أعلى 20 عملية بحسب استهلاك الذاكرة
+                top_processes = sorted(processes, key=lambda x: x.get('memory_percent', 0), reverse=True)[:20]
+                return {"success": True, "processes": top_processes, "total": len(processes)}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        # تسجيل أدوات النظام
+        self.register("read_system_file", read_system_file, "قراءة ملف نظام (بصلاحيات كاملة)")
+        self.register("write_system_file", write_system_file, "كتابة ملف نظام (بصلاحيات كاملة)")
+        self.register("system_shell", system_shell, "تنفيذ أمر shell (بصلاحيات كاملة)")
+        self.register("get_system_info", get_system_info, "معلومات النظام")
+        self.register("list_processes", list_processes, "قائمة العمليات الجارية")
+
+        # Neural OS Knowledge/Motor Tools
+        async def remote_shell(command: str) -> Dict[str, Any]:
+            if self.kernel and self.kernel.neural_client:
+                response = await self.kernel.neural_client.execute_command(command)
+                return {"success": response.success, "output": response.data.get("output", ""), "error": response.error}
+            return {"success": False, "error": "Neural client not available"}
+
+        async def search_memory(query: str, n_results: int = 3) -> Dict[str, Any]:
+            if self.kernel and self.kernel.neural_client:
+                response = await self.kernel.neural_client.recall_memory(query, n_results)
+                return {
+                    "success": response.success,
+                    "memories": response.data.get("memories", []),
+                    "error": response.error,
+                }
+            return {"success": False, "error": "Neural client not available"}
+
+        async def record_insight(content: str, metadata: dict = None) -> Dict[str, Any]:
+            if self.kernel and self.kernel.neural_client:
+                response = await self.kernel.neural_client.store_memory(content, metadata)
+                return {"success": response.success, "id": response.data.get("id"), "error": response.error}
+            return {"success": False, "error": "Neural client not available"}
+
+        self.register("remote_shell", remote_shell, "Execute safe shell commands on the Neural Engine (ls, pwd, etc).")
+        self.register("search_memory", search_memory, "Search the long-term semantic memory for relevant information.")
+        self.register(
+            "record_insight", record_insight, "Record a new insight or fact into the long-term semantic memory."
+        )
+
+        # ML Tools
+        try:
+            from gateway.app.ml.ml_tools import MLTools
+
+            # Instantiate with data_dir
+            ml_tools = MLTools(data_dir=self.data_dir)
+            self.register(
+                "load_dataset", ml_tools.load_and_analyze_dataset, "Load and analyze a dataset from HuggingFace."
+            )
+            self.register("train_classifier", ml_tools.train_text_classifier, "Train a text classifier.")
+            self.register("search_datasets", ml_tools.search_datasets, "Search HuggingFace Hub.")
+        except ImportError:
+            logger.warning("MLTools could not be imported.")

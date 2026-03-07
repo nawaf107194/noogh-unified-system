@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+date: Sun, 04 Jan 2026 10:47:10 GMT
+server: uvicorn
+content-length: 1374
+content-type: application/json
+x-trace-id: 2b101a70-8f6a-48c1-aa40-fdb528e58dec
+

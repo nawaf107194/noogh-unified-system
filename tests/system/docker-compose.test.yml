@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # Redis for state management
+  redis:
+    image: redis:7-alpine
+    container_name: noogh-redis-test
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-test-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Neural Engine (Reasoning + Memory + Tools)
+  neural-engine:
+    build:
+      context: ./services/neural-engine
+      dockerfile: Dockerfile
+    container_name: noogh-neural-test
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=DEBUG
+      - MODEL_NAME=mock-llm
+      - ENABLE_TOOLS=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./services/neural-engine:/app
+      - neural-cache:/app/.cache
+
+  # Gateway (Orchestrator + Public API)
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    container_name: noogh-gateway-test
+    ports:
+      - "8001:8001"
+    environment:
+      - NEURAL_ENGINE_URL=http://neural-engine:8000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=DEBUG
+      - ENABLE_CORS=true
+      - RATE_LIMIT_ENABLED=false  # Disable for testing
+    depends_on:
+      neural-engine:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./services/gateway:/app
+
+  # Test Runner (Optional: for CI/CD)
+  test-runner:
+    image: python:3.11-slim
+    container_name: noogh-test-runner
+    working_dir: /tests
+    volumes:
+      - ./tests:/tests
+      - ./tests/report:/tests/report
+    environment:
+      - GATEWAY_URL=http://gateway:8001
+      - NEURAL_URL=http://neural-engine:8000
+    depends_on:
+      gateway:
+        condition: service_healthy
+    command: >
+      bash -c "
+        pip install -q pytest requests &&
+        pytest test_system.py -v --tb=short --color=yes
+      "
+    profiles:
+      - test
+
+volumes:
+  redis-test-data:
+  neural-cache:
+
+networks:
+  default:
+    name: noogh-test-network

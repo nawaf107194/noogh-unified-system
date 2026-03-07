@@ -1,0 +1,1 @@
+{"elite_pair_hashes": [], "file_c": "data/backtest_setups.jsonl"}

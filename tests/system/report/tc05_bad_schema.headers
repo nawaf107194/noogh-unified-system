@@ -1,0 +1,7 @@
+HTTP/1.1 422 Unprocessable Entity
+date: Sun, 04 Jan 2026 10:47:08 GMT
+server: uvicorn
+content-length: 122
+content-type: application/json
+x-trace-id: 12f93208-350c-44b6-885f-b6e46a0fe886
+

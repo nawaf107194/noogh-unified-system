@@ -1,0 +1,1389 @@
+#!/usr/bin/env python3
+"""
+NOOGH Autonomous Trading Agent - AI-Driven Paper Trading System
+يتكامل مع Agent Daemon ويستخدم qwen2.5-coder:7b للتحليل
+
+المميزات:
+- Paper Trading (صفقات وهمية بأسعار حقيقية)
+- AI-Driven Analysis (qwen-7b brain)
+- Continuous Learning (التعلم من كل صفقة)
+- Integration with NOOGH Memory (shared_memory.sqlite)
+- Evolution & Adaptation (تطوير تلقائي)
+"""
+
+import sys
+import os
+import json
+import time
+import logging
+import asyncio
+import sqlite3
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from pathlib import Path
+
+# Load env variables for standalone testing
+from dotenv import load_dotenv
+load_dotenv("/home/noogh/projects/noogh_unified_system/src/.env")
+
+sys.path.insert(0, "/home/noogh/projects/noogh_unified_system/src")
+
+from trading.binance_futures import BinanceFuturesManager
+from trading.trap_hybrid_engine import TrapHybridEngine, get_trap_hybrid_engine
+from trading.trap_live_trader import TrapLiveTrader
+from trading.trade_tracker import DailyTracker, Trade, TradeStatus
+
+# Import improved filters (+9.8% validated improvement)
+import importlib.util
+filter_spec = importlib.util.spec_from_file_location(
+    "brain_improved_filters",
+    Path(__file__).parent.parent / 'strategies' / 'brain_improved_filters.py'
+)
+filters_module = importlib.util.module_from_spec(filter_spec)
+filter_spec.loader.exec_module(filters_module)
+improved_long_filter = filters_module.improved_long_filter
+improved_short_filter = filters_module.improved_short_filter
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | trading_agent | %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(
+            "/home/noogh/projects/noogh_unified_system/src/logs/autonomous_trading_agent.log"
+        ),
+    ]
+)
+logger = logging.getLogger("trading_agent")
+
+
+class PaperTradingEngine:
+    """محرك التداول الوهمي (Paper Trading)"""
+
+    def __init__(self, initial_balance: float = 1000.0):
+        self.balance = initial_balance
+        self.initial_balance = initial_balance
+        self.positions = []
+        self.closed_trades = []
+
+    def open_position(self, analysis: Dict) -> Dict:
+        """فتح صفقة وهمية"""
+        position = {
+            'id': f"paper_{int(time.time())}",
+            'symbol': analysis['symbol'],
+            'side': analysis['signal'],
+            'entry_price': analysis['entry_price'],
+            'quantity': analysis['quantity'],
+            'stop_loss': analysis['stop_loss'],
+            'take_profit': analysis['take_profit'],
+            'entry_time': datetime.now().isoformat(),
+            'status': 'OPEN',
+            'brain_confidence': analysis.get('strength', 0),
+            'reasons': analysis.get('reasons', []),
+            'analysis_snapshot': analysis
+        }
+
+        self.positions.append(position)
+        logger.info(f"📝 Paper Position Opened: {position['symbol']} {position['side']} @ ${position['entry_price']}")
+        return position
+
+    def close_position(self, position: Dict, exit_price: float, reason: str) -> Dict:
+        """إغلاق صفقة وهمية"""
+        position['exit_price'] = exit_price
+        position['exit_time'] = datetime.now().isoformat()
+        position['exit_reason'] = reason
+        position['status'] = 'CLOSED'
+
+        # حساب P&L
+        if position['side'] == 'LONG':
+            pnl = (exit_price - position['entry_price']) * position['quantity']
+            pnl_pct = ((exit_price - position['entry_price']) / position['entry_price']) * 100
+        else:  # SHORT
+            pnl = (position['entry_price'] - exit_price) * position['quantity']
+            pnl_pct = ((position['entry_price'] - exit_price) / position['entry_price']) * 100
+
+        position['pnl'] = pnl
+        position['pnl_pct'] = pnl_pct
+
+        # تحديث الرصيد
+        self.balance += pnl
+
+        # نقل للصفقات المغلقة
+        self.positions.remove(position)
+        self.closed_trades.append(position)
+
+        logger.info(f"✅ Paper Position Closed: {position['symbol']} | P&L: ${pnl:.2f} ({pnl_pct:+.2f}%) | Reason: {reason}")
+        return position
+
+    def get_performance(self) -> Dict:
+        """حساب الأداء"""
+        total_trades = len(self.closed_trades)
+        if total_trades == 0:
+            return {
+                'total_trades': 0,
+                'win_rate': 0,
+                'total_pnl': 0,
+                'roi': 0,
+                'balance': self.balance
+            }
+
+        wins = sum(1 for t in self.closed_trades if t['pnl'] > 0)
+        losses = total_trades - wins
+        win_rate = (wins / total_trades) * 100
+        total_pnl = self.balance - self.initial_balance
+        roi = (total_pnl / self.initial_balance) * 100
+
+        return {
+            'total_trades': total_trades,
+            'wins': wins,
+            'losses': losses,
+            'win_rate': win_rate,
+            'total_pnl': total_pnl,
+            'roi': roi,
+            'balance': self.balance,
+            'initial_balance': self.initial_balance
+        }
+
+
+class AutonomousTradingAgent:
+    """
+    وكيل التداول المستقل - يتكامل مع NOOGH Agent Daemon
+    """
+
+    def __init__(self, neural_bridge=None, mode='hybrid', testnet=False):
+        """
+        Args:
+            neural_bridge: NOOGH Neural Bridge (للاتصال بـ qwen-7b)
+            mode: 'paper' للتداول الوهمي فقط،
+                  'live' للتداول الحقيقي فقط،
+                  'hybrid' للتداول الحقيقي عند ثقة 100% فقط
+                  'observe' مراقبة فقط (لا تنفيذ) - للتعلم وجمع البيانات
+            testnet: Use Binance Futures Testnet instead of production
+        """
+        self.mode = mode
+        self.testnet = testnet
+        self.neural_bridge = neural_bridge
+
+        # Confidence threshold for live trading
+        self.live_trading_threshold = 85  # Brain ≥ 85% = تنفيذ حقيقي
+
+        # Trading Infrastructure
+        # في hybrid mode: read_only=False للتداول الحقيقي عند 100%
+        # في observe mode: read_only=True (مراقبة فقط)
+        read_only = (mode in ['paper', 'observe'])
+        self.binance = BinanceFuturesManager(testnet=self.testnet, read_only=read_only)
+        self.tracker = DailyTracker()
+
+        # 🚀 استخدام Trap Hybrid Engine الجديد (الربحي!)
+        self.trap_engine = get_trap_hybrid_engine()
+        self.trap_trader = TrapLiveTrader(
+            testnet=self.testnet,
+            read_only=read_only,
+            mode=self.mode,  # Pass the agent's mode down
+            risk_per_trade=0.01,  # 1% risk
+            initial_capital=self.tracker.active_balance  # من خطة الربح التراكمي
+        )
+
+        # Paper Trading Engine
+        self.paper_engine = PaperTradingEngine(initial_balance=1000.0)
+
+        # Symbols to monitor (will be populated dynamically)
+        self.symbols = []
+
+        # Memory database
+        self.db_path = "/home/noogh/projects/noogh_unified_system/src/data/shared_memory.sqlite"
+
+        # State
+        self.cycle_count = 0
+        self.last_analysis = {}
+
+        logger.info(f"🤖 AutonomousTradingAgent initialized | Mode: {mode}")
+        logger.info(f"🚀 Using Trap Hybrid Strategy (PF 1.12, WR 64.6% - PROVEN!)")
+        if mode in ['hybrid', 'safe-hybrid']:
+            logger.info(f"⚡ Hybrid Mode: Live trading ONLY at {self.live_trading_threshold}% confidence")
+        if mode == 'safe-hybrid':
+            logger.info(f"🛡️ Safe Hybrid Mode Active: System Diagnostic Block enabled.")
+
+    async def _fetch_top_symbols(self, limit: int = 500):
+        """جلب أكثر العملات سيولة من بينانس فيوتشرز (متوافق مع Testnet و Production)"""
+        logger.info(f"🔄 Fetching valid active symbols from Binance ({'Testnet' if self.testnet else 'Production'})...")
+        try:
+            # استخدام binance_futures manager لضمان الحصول على الرموز الصحيحة للبيئة الحالية (Testnet أو Prodcution)
+            exchange_info = self.binance.client.futures_exchange_info()
+            
+            # الفلترة: فقط USDT، حالتها TRADING، وبدون _ أو أرقام تدل على عقود منتهية
+            valid_symbols = []
+            for s in exchange_info['symbols']:
+                if (s['quoteAsset'] == 'USDT' and 
+                    s['status'] == 'TRADING' and 
+                    s['contractType'] == 'PERPETUAL' and 
+                    '_' not in s['symbol']):
+                    valid_symbols.append(s['symbol'])
+            
+            # جلب بيانات 24 ساعة لترتيبها حسب السيولة
+            tickers = self.binance.client.futures_ticker()
+            # فلترة وتحويل لقاموس للبحث السريع
+            ticker_dict = {t['symbol']: float(t.get('quoteVolume', 0)) for t in tickers if t['symbol'] in valid_symbols}
+            
+            # الترتيب واختيار الأعلى سيولة
+            sorted_symbols = sorted(valid_symbols, key=lambda x: ticker_dict.get(x, 0), reverse=True)
+            self.symbols = sorted_symbols[:limit]
+            
+            if not self.symbols:
+                # إذا فشل الترتيب، استخدم الرموز الصالحة مباشرة كملاذ آمن
+                self.symbols = valid_symbols[:limit]
+
+            logger.info(f"✅ Loaded {len(self.symbols)} valid symbols to monitor.")
+        except Exception as e:
+            logger.error(f"❌ Error fetching top symbols: {e}")
+
+    async def initialize(self):
+        """تهيئة الوكيل"""
+        logger.info("🚀 Initializing Trading Agent...")
+
+        # جلب قائمة العملات الأنشط ديناميكياً
+        await self._fetch_top_symbols(limit=500)
+
+        # التأكد من اتصال Binance
+        try:
+            test = self.binance.get_account_balance()
+            logger.info(f"✅ Binance connected | Futures Balance: ${test.get('total_balance', 0):.2f}")
+        except Exception as e:
+            logger.warning(f"⚠️ Binance connection issue: {e}")
+
+        # استرجاع الصفقات المفتوحة (إن وجدت) من Binance
+        if self.mode in ['hybrid', 'live']:
+            logger.info("🔄 Checking for open positions on Binance...")
+            recovered = self.trap_trader.recover_positions_from_exchange()
+            if recovered > 0:
+                logger.info(f"✅ Resumed monitoring {recovered} open positions")
+
+        # إنشاء جداول إذا لم تكن موجودة
+        self._init_database()
+
+        logger.info("✅ Trading Agent ready")
+
+    def _init_database(self):
+        """إنشاء جداول الذاكرة"""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            # جدول Paper Trades
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS paper_trades (
+                    id TEXT PRIMARY KEY,
+                    symbol TEXT,
+                    side TEXT,
+                    entry_price REAL,
+                    exit_price REAL,
+                    quantity REAL,
+                    pnl REAL,
+                    pnl_pct REAL,
+                    brain_confidence INTEGER,
+                    entry_time TEXT,
+                    exit_time TEXT,
+                    exit_reason TEXT,
+                    created_at REAL
+                )
+            """)
+
+            # جدول Trading Insights (ما تعلمه NOOGH)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS trading_insights (
+                    id TEXT PRIMARY KEY,
+                    insight TEXT,
+                    trade_id TEXT,
+                    utility_score REAL,
+                    created_at REAL
+                )
+            """)
+
+            conn.commit()
+            conn.close()
+            logger.info("✅ Database initialized")
+        except Exception as e:
+            logger.error(f"❌ Database error: {e}")
+
+    def _enforce_database_limits(self, paper_trades_limit: int = 10000, insights_limit: int = 5000):
+        """تفريغ البيانات القديمة مع حفظها في أرشيف لمنع ضياع أي درس (تدوير الذاكرة)"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row  # للحصول على نتائج كقواميس
+            cur = conn.cursor()
+
+            archive_dir = "/home/noogh/projects/noogh_unified_system/src/data/archive"
+            import os
+            import json
+            os.makedirs(archive_dir, exist_ok=True)
+
+            # حذف أقدم Paper Trades إذا تجاوزت الحد
+            cur.execute(f"""
+                SELECT * FROM paper_trades 
+                ORDER BY created_at DESC 
+                LIMIT -1 OFFSET {paper_trades_limit}
+            """)
+            old_trades = [dict(row) for row in cur.fetchall()]
+
+            if old_trades:
+                with open(os.path.join(archive_dir, "paper_trades_archive.jsonl"), "a", encoding="utf-8") as f:
+                    for trade in old_trades:
+                        f.write(json.dumps(trade, ensure_ascii=False) + "\n")
+                
+                cur.execute(f"""
+                    DELETE FROM paper_trades 
+                    WHERE id IN (
+                        SELECT id FROM paper_trades 
+                        ORDER BY created_at DESC 
+                        LIMIT -1 OFFSET {paper_trades_limit}
+                    )
+                """)
+            deleted_trades = len(old_trades)
+
+            # حذف أقدم Trading Insights إذا تجاوزت الحد
+            cur.execute(f"""
+                SELECT * FROM trading_insights 
+                ORDER BY created_at DESC 
+                LIMIT -1 OFFSET {insights_limit}
+            """)
+            old_insights = [dict(row) for row in cur.fetchall()]
+
+            if old_insights:
+                with open(os.path.join(archive_dir, "trading_insights_archive.jsonl"), "a", encoding="utf-8") as f:
+                    for insight in old_insights:
+                        f.write(json.dumps(insight, ensure_ascii=False) + "\n")
+
+                cur.execute(f"""
+                    DELETE FROM trading_insights 
+                    WHERE id IN (
+                        SELECT id FROM trading_insights 
+                        ORDER BY created_at DESC 
+                        LIMIT -1 OFFSET {insights_limit}
+                    )
+                """)
+            deleted_insights = len(old_insights)
+
+            if deleted_trades > 0 or deleted_insights > 0:
+                logger.info(f"💾 Memory Archive: Saved & Removed {deleted_trades} trades, {deleted_insights} insights offline.")
+
+            # تصغير حجم قاعدة البيانات
+            cur.execute("VACUUM")
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"❌ Database cleanup error: {e}")
+
+    async def analyze_markets(self) -> List[Dict]:
+        """تحليل جميع الأسواق (مع الذاكرة التراكمية)"""
+        # فحص الذاكرة المتراكمة
+        insights_count = len(self._get_recent_insights(5))
+        if insights_count > 0:
+            logger.info(f"🧠 Brain loaded {insights_count} past insights from memory")
+
+        logger.info(f"🔍 Analyzing {len(self.symbols)} markets...")
+
+        analyses = []
+        for symbol in self.symbols:
+            try:
+                analysis = await self._analyze_symbol(symbol)
+                if analysis and analysis.get('signal') != 'NEUTRAL':
+                    analyses.append(analysis)
+                    self.last_analysis[symbol] = analysis
+            except Exception as e:
+                logger.error(f"❌ Analysis failed for {symbol}: {e}")
+
+        logger.info(f"✅ Found {len(analyses)} potential setups")
+        return analyses
+
+    async def _analyze_symbol(self, symbol: str) -> Optional[Dict]:
+        """تحليل عملة واحدة باستخدام Trap Hybrid Engine + AI Brain"""
+        try:
+            # 🚀 استخدام Trap Strategy الجديد (الربحي!)
+            trap_signal = self.trap_trader.check_signal(symbol)
+
+            if trap_signal.signal == 'NONE':
+                return None
+
+            current_price = trap_signal.entry_price
+
+            # 🛠 Deep Diagnostic Log
+            logger.info(f"📊 [Trap Signal] {symbol}: {trap_signal.signal} @ ${current_price:,.2f}")
+            logger.info(f"   ↳ Entry: ${trap_signal.entry_price:.2f}")
+            logger.info(f"   ↳ Stop Loss: ${trap_signal.stop_loss:.2f}")
+            logger.info(f"   ↳ Quick TP: ${trap_signal.quick_tp:.2f}")
+            logger.info(f"   ↳ ATR: ${trap_signal.atr:.2f}")
+            logger.info(f"   ↳ Reasons: {', '.join(trap_signal.reasons)}")
+
+            # تحضير بيانات لـ Brain
+            # جلب بيانات إضافية للسياق
+            df_1h = self.binance.get_klines(symbol, '1h', limit=20)
+            if df_1h is not None:
+                current_rsi = float(df_1h['close'].iloc[-1])  # نستخدمه كـ proxy
+                macro_trend = "BULLISH" if trap_signal.signal == "LONG" else "BEARISH"
+            else:
+                current_rsi = 50.0
+                macro_trend = "NEUTRAL"
+
+            # تحضير snapshot data من trap signal
+            snaps = {
+                'signal': trap_signal.signal,
+                'entry_price': trap_signal.entry_price,
+                'stop_loss': trap_signal.stop_loss,
+                'quick_tp': trap_signal.quick_tp,
+                'atr': trap_signal.atr,
+                'reasons': trap_signal.reasons,
+                'bull_sweep': 'Bullish Sweep' in trap_signal.reasons,
+                'bear_sweep': 'Bearish Sweep' in trap_signal.reasons,
+                'of_impulse_up': 'Buy Reversal' in trap_signal.reasons,
+                'of_impulse_dn': 'Sell Reversal' in trap_signal.reasons,
+                'last_delta': 0.0,  # لا نملك هذا من trap signal
+            }
+
+            liquidity_score = 75.0  # Trap strategy already filtered for quality
+
+            # استخدام NOOGH Brain للتحليل العميق (اختياري - يزيد الثقة)
+            initial_strength = 80.0  # Trap strategy has proven edge
+            brain_insight = {}
+            brain_approved = False
+
+            if self.neural_bridge:
+                brain_analysis = await self._ask_brain_for_analysis(
+                    symbol, current_price, macro_trend, current_rsi,
+                    liquidity_score, {"signal": trap_signal.signal, "strength": initial_strength, **snaps}
+                )
+
+                # دمج تحليل Brain مع التحليل التقني
+                if brain_analysis:
+                    logger.info(f"🧠 [Brain Decision] {symbol}: {brain_analysis.get('decision')} | Confidence: {brain_analysis.get('confidence')}%")
+                    logger.info(f"   ↳ Reason: {brain_analysis.get('reason')}")
+
+                    if brain_analysis.get('confidence', 0) >= self.live_trading_threshold and brain_analysis.get('decision') == trap_signal.signal:
+                        brain_insight = brain_analysis
+                        final_strength = brain_analysis.get('confidence', initial_strength)
+                        final_signal = brain_analysis.get('decision', trap_signal.signal)
+                        brain_approved = True
+
+                        # 🧠 Brain يحدد الرافعة والستوب والهدف
+                        brain_leverage = brain_analysis.get('leverage', 5)
+                        brain_sl = brain_analysis.get('stop_loss', None)
+                        brain_tp = brain_analysis.get('take_profit', None)
+
+                        logger.info(f"   ↳ 🎰 Brain Leverage: {brain_leverage}x")
+                        if brain_sl:
+                            logger.info(f"   ↳ 🛑 Brain SL: ${float(brain_sl):,.4f}")
+                        if brain_tp:
+                            logger.info(f"   ↳ 🎯 Brain TP: ${float(brain_tp):,.4f}")
+                    else:
+                        logger.info(f"   ↳ ❌ Brain rejected the setup or has insufficient confidence/disagreement.")
+                        return None
+                else:
+                    logger.warning(f"   ↳ ⚠️ Brain failed to respond - enforcing rejection for live trading safety.")
+                    # Do not trade if brain fails
+                    return None
+            else:
+                # لا يوجد Brain - لا يمكن التداول الحقيقي المعتمد على الذكاء
+                logger.warning(f"   ↳ ⚠️ No Neural Bridge available - skipping symbol.")
+                return None
+
+            # v21: Brain sometimes returns prices with '$' or ',' — strip them
+            def _clean_price(v):
+                return str(v).replace('$', '').replace(',', '').strip() if v else ''
+
+            # استخدام قيم Brain إذا متاحة، وإلا Trap Engine
+            stop_loss = float(_clean_price(brain_sl)) if brain_sl else trap_signal.stop_loss
+            tp1_price = float(_clean_price(brain_tp)) if brain_tp else trap_signal.quick_tp
+            leverage = int(float(_clean_price(brain_leverage))) if brain_leverage else 5
+            leverage = max(3, min(10, leverage))  # حد أقصى 10x، أدنى 3x
+
+            take_profits = {
+                'tp1': tp1_price,
+                'tp2': tp1_price * 1.5,
+                'tp3': tp1_price * 2.0
+            }
+
+            risk_amount = self.tracker.active_balance * 0.01  # 1% من الرصيد
+            quantity = risk_amount / abs(current_price - stop_loss) if abs(current_price - stop_loss) > 0 else 0
+
+            return {
+                'symbol': symbol,
+                'signal': final_signal,
+                'strength': final_strength,
+                'entry_price': current_price,
+                'stop_loss': stop_loss,
+                'take_profit': take_profits,
+                'quantity': quantity,
+                'leverage': leverage,
+                'atr': trap_signal.atr,
+                'macro_trend': macro_trend,
+                'liquidity_score': liquidity_score,
+                'rsi': current_rsi,
+                'reasons': trap_signal.reasons,
+                'brain_insight': brain_insight,
+                'raw_indicators': snaps,
+                'trap_signal': trap_signal,
+                'brain_approved': brain_approved
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Symbol analysis error {symbol}: {e}")
+            return None
+
+    async def _ask_brain_for_analysis(self, symbol: str, price: float,
+                                      trend: str, rsi: float, liquidity: float,
+                                      signal_data: Dict) -> Optional[Dict]:
+        """سؤال NOOGH Brain عن التحليل (مع الذاكرة التراكمية)"""
+
+        if not self.neural_bridge:
+            return None
+
+        try:
+            # 🧠 جلب التعلمات السابقة من الذاكرة
+            past_insights = self._get_recent_insights(limit=5)
+
+            # بناء قسم الذاكرة
+            memory_section = ""
+            if past_insights:
+                memory_section = "📚 تعلماتك من الصفقات السابقة:\n"
+                memory_section += "\n".join(f"  • {insight}" for insight in past_insights)
+                memory_section += "\n\n"
+
+            # جلب معلومات الخطة اليومية
+            today_stats = self.tracker.get_today_stats()
+            trades_done = today_stats['total_trades']
+            trades_left = max(0, 3 - trades_done)
+
+            prompt = f"""أنت NOOGH، خبير تداول Futures ومحلل أسواق محترف يعتمد على قراءة "خارطة السيولة" (Order Flow / SMC).
+وظيفتك الأساسية هي ربط قطع الأحجية (Jigsaw Puzzle) لتكوين صورة واضحة ومقنعة عن نية السعر:
+القطعة الأولى: الاتجاه العام (Macro Trend).
+القطعة الثانية: مناطق السيولة والفراغات السعرية (FVG & Sweeps).
+القطعة الثالثة: الزخم والاندفاع الحقيقي للمشترين أو البائعين (Order Flow Delta & CVD).
+القطعة الرابعة: تأكيد الشموع والكسور (Fractals & Candlesticks).
+
+لا تثق بأي قطعة منفردة. الشراء الآمن يحدث عندما يضرب السعر دعماً (FVG/Sweep) + يتزامن مع اندفاع شراء حقيقي (Delta Impulse Up).
+
+📋 خطتك:
+  • الرصيد: ${self.tracker.active_balance:.2f} Active / ${self.tracker.reserve_balance:.2f} Reserve
+  • الهدف اليومي: 3 صفقات فقط ({trades_done}/3 تم تنفيذها)
+
+{memory_section}🧩 قطع الأحجية المتاحة أمامك للتحليل:
+
+[القطعة 1: الصورة الكبرى]
+- الرمز: {symbol} (السعر الحالي: ${price:,.2f})
+- الاتجاه العام (1H Macro Trend): {trend}
+- السيولة العامة: {liquidity:.0f}/100
+
+[القطعة 2: هياكل السيولة - SMC]
+- سحب السيولة (Sweeps): صاعد؟ {signal_data.get('bull_sweep', False)} | هابط؟ {signal_data.get('bear_sweep', False)}
+- الفراغات السعرية (FVG): صاعد؟ {signal_data.get('bull_fvg', False)} | هابط؟ {signal_data.get('bear_fvg', False)}
+
+[القطعة 3: نبض السوق - Order Flow]
+- صافي الدلتا اللحظية: {signal_data.get('last_delta', 0):.2f}
+- اندفاع شراء عنيف (Impulse Up): {signal_data.get('of_impulse_up', False)}
+- اندفاع بيع عنيف (Impulse Dn): {signal_data.get('of_impulse_dn', False)}
+- اتجاه الدلتا التراكمية (CVD): صاعد؟ {signal_data.get('cvd_up', False)} | هابط؟ {signal_data.get('cvd_dn', False)}
+
+[القطعة 4: التأكيدات التقنية]
+- RSI (5m): {rsi:.1f}
+- فركتال: صاعد؟ {signal_data.get('bull_fractal', False)} | هابط؟ {signal_data.get('bear_fractal', False)}
+- المحرك الآلي أعطى إشارة: {signal_data.get('signal', 'NEUTRAL')} بقوة ({signal_data.get('strength', 0)}/100)
+أسباب المحرك الآلي:
+{chr(10).join(f"- {r}" for r in signal_data.get('reasons', []))}
+
+⚡ قرر بناءً على كيفية تراكب هذه القطع معاً:
+1. هل الصورة مكتملة لصفقة مثالية تضعنا مع "الحيتان"؟ (نعم LONG/SHORT أو لا SKIP)
+2. ثقتك بتطابق القطع: 0-100
+3. الرافعة المالية المناسبة (3x-10x): كلما زادت ثقتك زادت الرافعة
+4. سعر وقف الخسارة الدقيق (بناءً على مناطق السيولة و ATR)
+5. سعر الهدف الأول (TP1 - واقعي وقابل للتحقيق)
+6. السبب السردي (كيف ركبت القطع معاً في جملة واحدة)
+
+⚠️ قواعد مهمة:
+- **كن صارماً**: معظم الإشارات يجب رفضها! فقط الأفضل يستحق رأس المال
+- مستويات الثقة:
+  * 95-100%: كل القطع مكتملة (sweep + FVG + impulse + CVD متفقة) → 7-10x leverage
+  * 85-94%: معظم القطع موجودة + تأكيدات قوية → 5-7x leverage
+  * 70-84%: بعض القطع + تأكيدات متوسطة → 3-5x leverage
+  * 50-69%: قطع قليلة، إشارة ضعيفة → SKIP (لا تدخل!)
+  * <50%: رفض تام → SKIP
+- وقف الخسارة: يجب أن يكون تحت/فوق منطقة السيولة (Sweep) بهامش أمان
+- الهدف: RRR >= 1.0 (المسافة للهدف >= المسافة للستوب)
+- السعر الحالي: ${price:,.4f}
+
+أمثلة:
+- كل القطع مكتملة؟ → confidence: 95, leverage: 7, decision: LONG
+- sweep + impulse فقط؟ → confidence: 75, leverage: 3, decision: LONG
+- sweep فقط بدون تأكيدات؟ → confidence: 40, decision: SKIP
+
+أجب بـ JSON (قيّم بموضوعية - لا تقلد الأمثلة):
+{{
+  "decision": "LONG/SHORT/SKIP",
+  "confidence": <رقم من 0-100 حسب قوة الإشارة>,
+  "leverage": <3-10 حسب الثقة>,
+  "stop_loss": <سعر دقيق>,
+  "take_profit": <سعر دقيق>,
+  "reason": "<سبب واحد مختصر>"
+}}"""
+
+            # استدعاء Neural Bridge
+            response = await self.neural_bridge.complete(
+                [{"role": "user", "content": prompt}],
+                max_tokens=200
+                # Note: temperature not supported by NeuralEngineClient
+            )
+
+            content = response.get('content', '').strip()
+
+            # محاولة استخراج JSON
+            import re
+            match = re.search(r'\{[^}]+\}', content)
+            if match:
+                result = json.loads(match.group())
+                return result
+
+            return None
+
+        except Exception as e:
+            logger.error(f"❌ Brain analysis error: {e}")
+            return None
+
+    async def execute_paper_trades(self) -> List[Dict]:
+        """تنفيذ الصفقات (وهمية أو حقيقية حسب الثقة)"""
+        # استخدام التحليلات المخزنة من analyze_markets (بدلاً من إعادة التحليل)
+        analyses = [a for a in self.last_analysis.values() if a and a.get('signal') not in (None, 'NEUTRAL')]
+
+        if not analyses:
+            logger.info("📊 No actionable signals this cycle")
+            return []
+
+        # 🔍 OBSERVE MODE: Log only, no execution
+        if self.mode == 'observe':
+            logger.info(f"👁️  OBSERVE MODE: Found {len(analyses)} signals (logging only)")
+            for analysis in analyses:
+                confidence = analysis.get('strength', 0)
+                symbol = analysis['symbol']
+                signal = analysis['signal']
+                logger.info(f"   📊 {symbol}: {signal} @ ${analysis['entry_price']:.4f} | Confidence: {confidence}%")
+                logger.info(f"      Brain: {analysis.get('brain_insight', {}).get('reason', 'N/A')}")
+
+                # Save to observation dataset
+                self._save_observation(analysis)
+
+            return []  # No execution in observe mode
+
+        executed = []
+        for analysis in analyses:
+            confidence = analysis.get('strength', 0)
+            signal_type = analysis.get('signal')
+            symbol = analysis.get('symbol')
+
+            # 🛑 Apply Layer B (Statistical Alpha Filter) FIRST
+            try:
+                from trading.layer_b_filter import statistical_alpha_filter
+                is_valid_alpha, alpha_prob, alpha_reason = statistical_alpha_filter(analysis)
+                if not is_valid_alpha:
+                    logger.info(f"🚫 Layer B Rejected {signal_type} {symbol}: {alpha_reason}")
+                    continue
+                logger.info(f"✅ Layer B Passed {signal_type} {symbol}: {alpha_reason}")
+                
+                # We can boost or record confidence based on probability
+                confidence = max(confidence, int(alpha_prob * 100))
+                analysis['strength'] = confidence
+            except Exception as e:
+                logger.error(f"❌ Layer B error: {e}")
+                # If Layer B crashes for some reason, we fail safe and block
+                continue
+
+            # 🎯 Apply Layer C / Custom Improved Filters
+            filter_passed = False
+            filter_reason = ""
+
+            if signal_type == 'LONG':
+                filter_passed, filter_reason = improved_long_filter(analysis)
+            elif signal_type == 'SHORT':
+                filter_passed, filter_reason = improved_short_filter(analysis)
+
+            if not filter_passed:
+                logger.info(f"🚫 Filter rejected {signal_type} {symbol}: {filter_reason}")
+                continue
+
+            logger.info(f"✅ Filter passed {signal_type} {symbol}: {filter_reason}")
+
+            # Hybrid Mode: تداول حقيقي عند ثقة >= threshold WITH EXPLICIT BRAIN APPROVAL
+            if self.mode in ['hybrid', 'safe-hybrid']:
+                if analysis.get('brain_approved', False) and confidence >= self.live_trading_threshold:
+                    # ✅ تداول حقيقي!
+                    logger.info(f"🔥 LIVE TRADE SIGNAL: {analysis['symbol']} | EXPLICIT AI APPROVAL | Confidence: {confidence}%")
+
+                    # فحص شروط التداول
+                    can_trade = self.tracker.can_trade_today()
+                    if not can_trade['allowed']:
+                        logger.warning(f"⚠️ Trading blocked: {can_trade['reason']}")
+                        continue
+
+                    # تنفيذ حقيقي على Binance عبر TrapLiveTrader
+                    try:
+                        from trading.trap_hybrid_engine import TrapSignal
+                        trap_signal = TrapSignal(
+                            signal=analysis['signal'],
+                            entry_price=analysis['entry_price'],
+                            stop_loss=analysis['stop_loss'],
+                            quick_tp=analysis.get('take_profit', {}).get('tp1', analysis['entry_price']),
+                            atr=analysis.get('atr', 0),
+                            timestamp=datetime.now(),
+                            reasons=analysis.get('reasons', [])
+                        )
+                        result = self.trap_trader.execute_signal(trap_signal, analysis['symbol'])
+                        if result.get('success'):
+                            executed.append(result)
+                            logger.info(f"✅ LIVE TRADE EXECUTED: {analysis['symbol']} {analysis['signal']}")
+                        else:
+                            logger.error(f"❌ Live trade failed: {result.get('message')}")
+                    except Exception as e:
+                        logger.error(f"❌ Live trade exception: {e}")
+
+                else:
+                    # Paper Trading - الثقة أقل من العتبة أو بدون موافقة صريحة من الدماغ
+                    position = self.paper_engine.open_position(analysis)
+                    self._save_paper_trade(position)
+                    executed.append(position)
+                    logger.info(f"📝 Paper trade: {analysis['symbol']} (Brain Approved: {analysis.get('brain_approved', False)}, Confidence: {confidence}%)")
+
+            elif self.mode == 'paper':
+                position = self.paper_engine.open_position(analysis)
+                self._save_paper_trade(position)
+                executed.append(position)
+
+            elif self.mode == 'live':
+                # Live Trading لكل الإشارات
+                logger.warning(f"⚠️ LIVE MODE: Executing trade at {confidence}% confidence")
+                try:
+                    from trading.trap_hybrid_engine import TrapSignal
+                    trap_signal = TrapSignal(
+                        signal=analysis['signal'],
+                        entry_price=analysis['entry_price'],
+                        stop_loss=analysis['stop_loss'],
+                        quick_tp=analysis.get('take_profit', {}).get('tp1', analysis['entry_price']),
+                        atr=analysis.get('atr', 0),
+                        timestamp=datetime.now(),
+                        reasons=analysis.get('reasons', [])
+                    )
+                    result = self.trap_trader.execute_signal(trap_signal, analysis['symbol'])
+                    if result.get('success'):
+                        executed.append(result)
+                except Exception as e:
+                    logger.error(f"❌ Live trade exception: {e}")
+
+        logger.info(f"📊 Executed {len(executed)} trades")
+        return executed
+
+    async def _execute_live_trade(self, analysis: Dict) -> Dict:
+        """تنفيذ صفقة حقيقية على Binance"""
+        try:
+            symbol = analysis['symbol']
+            side = 'BUY' if analysis['signal'] == 'LONG' else 'SELL'
+            quantity = analysis['quantity']
+            stop_loss = analysis['stop_loss']
+            take_profit = analysis['take_profit']['tp1']
+
+            logger.info(f"🚀 Opening LIVE position: {symbol} {side} @ {analysis['entry_price']}")
+
+            # تنفيذ على Binance
+            result = self.binance.open_position(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                leverage=3,  # 3x leverage (آمن)
+                stop_loss=stop_loss,
+                take_profit=take_profit
+            )
+
+            if 'error' in result:
+                return {'success': False, 'error': result['error']}
+
+            # تسجيل في Tracker
+            trade_id = f"live_{symbol}_{int(time.time())}"
+            trade = Trade(
+                trade_id=trade_id,
+                symbol=symbol,
+                side=analysis['signal'],
+                entry_price=analysis['entry_price'],
+                quantity=quantity,
+                stop_loss=stop_loss,
+                take_profit=analysis['take_profit'],
+                entry_time=datetime.now().isoformat(),
+                reasons=analysis.get('reasons', []),
+                liquidity_score=analysis.get('liquidity_score', 0),
+                indicator_strength=analysis.get('strength', 0)
+            )
+
+            self.tracker.record_trade(trade)
+
+            # حفظ في Memory
+            self._save_live_trade_to_memory(trade, analysis)
+
+            return {
+                'success': True,
+                'trade_id': trade_id,
+                'symbol': symbol,
+                'side': side,
+                'confidence': analysis['strength']
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Live trade execution error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def _save_live_trade_to_memory(self, trade: Trade, analysis: Dict):
+        """حفظ الصفقة الحقيقية في NOOGH Memory"""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            # حفظ في beliefs
+            belief_key = f"live_trade:{trade.trade_id}"
+            belief_data = {
+                'trade': asdict(trade),
+                'analysis': analysis,
+                'type': 'LIVE',
+                'confidence': analysis.get('strength', 0),
+                'timestamp': time.time()
+            }
+
+            cur.execute("""
+                INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at)
+                VALUES (?, ?, ?, ?)
+            """, (
+                belief_key,
+                json.dumps(belief_data, ensure_ascii=False, default=str),
+                0.99,  # very high utility - live trade!
+                time.time()
+            ))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"💾 Live trade saved to NOOGH Memory: {trade.trade_id}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to save live trade to memory: {e}")
+
+    async def monitor_paper_positions(self):
+        """مراقبة الصفقات (وهمية + حقيقية) باستخدام Trap Hybrid Exit Logic"""
+
+        # ============================================
+        # 1. مراقبة الصفقات الحقيقية (Live on Binance)
+        # ============================================
+        if self.trap_trader.positions:
+            logger.info(f"🔍 Monitoring {len(self.trap_trader.positions)} LIVE positions...")
+            monitor_result = self.trap_trader.monitor_positions()
+
+            for exit_event in monitor_result.get('exits', []):
+                symbol = exit_event['symbol']
+                reason = exit_event['reason']
+                pnl = exit_event['pnl']
+
+                logger.info(f"🚪 LIVE EXIT: {symbol} | Reason: {reason} | PnL: ${pnl:+.2f}")
+
+                # إغلاق الصفقة على Binance
+                if not self.trap_trader.read_only:
+                    try:
+                        close_result = self.binance.close_position(symbol)
+                        if 'error' not in close_result:
+                            logger.info(f"✅ Binance position closed: {symbol}")
+                        else:
+                            logger.error(f"❌ Binance close error: {close_result['error']}")
+                    except Exception as e:
+                        logger.error(f"❌ Binance close exception: {e}")
+
+                # تحديث الرصيد التراكمي
+                self.tracker.active_balance += pnl
+                self.tracker.save_capital()
+                logger.info(f"💰 Balance updated: ${self.tracker.active_balance:.2f} ({'+' if pnl > 0 else ''}{pnl:.2f})")
+
+                # التعلم من الصفقة
+                trade_result = {
+                    'symbol': symbol,
+                    'pnl': pnl,
+                    'exit_reason': reason,
+                    'side': exit_event.get('side', 'UNKNOWN'),
+                    'status': 'CLOSED',
+                    'pnl_pct': 0
+                }
+                await self._learn_from_trade(trade_result)
+
+            # Log trailing stop updates
+            for update in monitor_result.get('updates', []):
+                logger.info(f"📏 Trail update: {update['symbol']} | Trailing SL: ${update['trailing_stop']:.4f}")
+
+        # ============================================
+        # 2. مراقبة الصفقات الوهمية (Paper)
+        # ============================================
+        for position in self.paper_engine.positions[:]:
+            try:
+                symbol = position['symbol']
+
+                df = self.binance.get_klines(symbol, '5m', limit=5)
+                if df is None:
+                    continue
+
+                df = self.trap_engine.compute_indicators(df)
+                latest_bar = df.iloc[-1]
+                h, l = float(latest_bar['high']), float(latest_bar['low'])
+
+                closed = False
+
+                if position['side'] == 'LONG':
+                    if l <= position['stop_loss']:
+                        result = self.paper_engine.close_position(position, position['stop_loss'], 'STOP_LOSS')
+                        closed = True
+                    elif h >= position['take_profit']['tp1']:
+                        result = self.paper_engine.close_position(position, position['take_profit']['tp1'], 'QUICK_TP')
+                        closed = True
+                else:  # SHORT
+                    if h >= position['stop_loss']:
+                        result = self.paper_engine.close_position(position, position['stop_loss'], 'STOP_LOSS')
+                        closed = True
+                    elif l <= position['take_profit']['tp1']:
+                        result = self.paper_engine.close_position(position, position['take_profit']['tp1'], 'QUICK_TP')
+                        closed = True
+
+                if closed:
+                    await self._learn_from_trade(result)
+
+            except Exception as e:
+                logger.error(f"❌ Monitor error: {e}")
+
+    async def _learn_from_trade(self, trade: Dict):
+        """التعلم من نتيجة الصفقة"""
+
+        # حفظ الصفقة في Database
+        self._save_paper_trade_result(trade)
+
+        # إذا كانت الصفقة ناجحة، احفظها بكامل تفاصيلها كنموذج ذهبي للتدريب اللاحق
+        if trade.get('pnl_pct', 0) > 0:
+            self._save_to_golden_playbook(trade)
+
+        # سؤال Brain: ماذا تعلمنا؟
+        if self.neural_bridge:
+            try:
+                prompt = f"""تحليل صفقة paper trading:
+
+Symbol: {trade['symbol']}
+الدخول: ${trade['entry_price']}
+الخروج: ${trade['exit_price']}
+النتيجة: {trade['exit_reason']}
+P&L: {trade['pnl_pct']:+.2f}%
+ثقة Brain: {trade['brain_confidence']}/100
+
+ماذا نتعلم؟ (جملة واحدة قصيرة)"""
+
+                response = await self.neural_bridge.complete(
+                    [{"role": "user", "content": prompt}],
+                    max_tokens=100
+                )
+
+                insight = response.get('content', '').strip()
+
+                # حفظ التعلم في NOOGH Memory
+                self._save_insight(insight, trade['id'])
+
+                logger.info(f"🧠 NOOGH learned: {insight}")
+
+            except Exception as e:
+                logger.error(f"❌ Learning error: {e}")
+
+    def _save_paper_trade(self, position: Dict):
+        """حفظ الصفقة في Database"""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            cur.execute("""
+                INSERT INTO paper_trades
+                (id, symbol, side, entry_price, quantity, brain_confidence, entry_time, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                position['id'],
+                position['symbol'],
+                position['side'],
+                position['entry_price'],
+                position['quantity'],
+                position['brain_confidence'],
+                position['entry_time'],
+                time.time()
+            ))
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"❌ Save error: {e}")
+
+    def _save_paper_trade_result(self, trade: Dict):
+        """حفظ نتيجة الصفقة"""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            cur.execute("""
+                UPDATE paper_trades
+                SET exit_price = ?, pnl = ?, pnl_pct = ?, exit_time = ?, exit_reason = ?
+                WHERE id = ?
+            """, (
+                trade['exit_price'],
+                trade['pnl'],
+                trade['pnl_pct'],
+                trade['exit_time'],
+                trade['exit_reason'],
+                trade['id']
+            ))
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"❌ Update error: {e}")
+
+    def _save_to_golden_playbook(self, trade: Dict):
+        """حفظ الصفقة الناجحة بكامل تفاصيلها كنموذج ذهبي للتدريب - Playbook Data"""
+        db_path = "/home/noogh/projects/noogh_unified_system/src/data/golden_playbook.sqlite"
+        try:
+            conn = sqlite3.connect(db_path, timeout=5)
+            cur = conn.cursor()
+            
+            # إنشاء الجدول إذا لم يكن موجوداً
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS golden_trades (
+                    id TEXT PRIMARY KEY,
+                    symbol TEXT,
+                    side TEXT,
+                    entry_price REAL,
+                    exit_price REAL,
+                    pnl_pct REAL,
+                    brain_confidence INTEGER,
+                    entry_time TEXT,
+                    exit_time TEXT,
+                    analysis_json TEXT
+                )
+            """)
+            
+            analysis_data = trade.get('analysis_snapshot', {})
+            
+            cur.execute("""
+                INSERT OR REPLACE INTO golden_trades
+                (id, symbol, side, entry_price, exit_price, pnl_pct, brain_confidence, entry_time, exit_time, analysis_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                trade['id'],
+                trade['symbol'],
+                trade['side'],
+                trade['entry_price'],
+                trade['exit_price'],
+                trade['pnl_pct'],
+                trade.get('brain_confidence', 0),
+                trade.get('entry_time', ''),
+                trade.get('exit_time', ''),
+                json.dumps(analysis_data, ensure_ascii=False, default=str)
+            ))
+            
+            conn.commit()
+            conn.close()
+            logger.info(f"🏆 Golden Playbook: Saved successful {trade['symbol']} trade with {trade['pnl_pct']:+.2f}% profit!")
+        except Exception as e:
+            logger.error(f"❌ Failed to save Golden Trade: {e}")
+
+    def _save_observation(self, analysis: Dict):
+        """حفظ ملاحظة Brain في observation dataset"""
+        try:
+            obs_file = Path("/home/noogh/projects/noogh_unified_system/src/data/observations.jsonl")
+            obs_file.parent.mkdir(parents=True, exist_ok=True)
+
+            observation = {
+                'timestamp': datetime.now().isoformat(),
+                'symbol': analysis['symbol'],
+                'signal': analysis['signal'],
+                'entry_price': analysis['entry_price'],
+                'stop_loss': analysis['stop_loss'],
+                'take_profit': analysis['take_profit'],
+                'confidence': analysis.get('strength', 0),
+                'leverage': analysis.get('leverage', 5),
+                'brain_decision': analysis.get('brain_insight', {}).get('decision'),
+                'brain_reason': analysis.get('brain_insight', {}).get('reason'),
+                'indicators': analysis.get('raw_indicators', {}),
+                'macro_trend': analysis.get('macro_trend'),
+                'liquidity_score': analysis.get('liquidity_score', 0),
+                'mode': 'observe',
+                'testnet': self.testnet
+            }
+
+            with open(obs_file, 'a') as f:
+                f.write(json.dumps(observation, ensure_ascii=False) + '\n')
+
+            logger.debug(f"💾 Observation saved: {analysis['symbol']}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to save observation: {e}")
+
+    def _save_insight(self, insight: str, trade_id: str):
+        """حفظ التعلم في NOOGH Memory"""
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            insight_id = f"trading_insight_{int(time.time())}"
+
+            # حفظ في beliefs
+            cur.execute("""
+                INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at)
+                VALUES (?, ?, ?, ?)
+            """, (
+                insight_id,
+                json.dumps({"insight": insight, "trade_id": trade_id}),
+                0.90,  # high utility
+                time.time()
+            ))
+
+            # حفظ في trading_insights
+            cur.execute("""
+                INSERT INTO trading_insights (id, insight, trade_id, utility_score, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                insight_id,
+                insight,
+                trade_id,
+                0.90,
+                time.time()
+            ))
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"❌ Insight save error: {e}")
+
+    def _get_recent_insights(self, limit: int = 5) -> List[str]:
+        """جلب آخر تعلمات من الذاكرة (مع قراءة الأرشيف عند الحاجة)"""
+        insights = []
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            cur.execute("""
+                SELECT insight
+                FROM trading_insights
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (limit,))
+
+            insights = [row[0] for row in cur.fetchall()]
+            conn.close()
+        except Exception as e:
+            logger.debug(f"MySQLite insights fetch error: {e}")
+
+        # إذا كانت الإستنتاجات الحية أقل من المطلوب، اجمع الباقي من الأرشيف!
+        if len(insights) < limit:
+            needed = limit - len(insights)
+            archive_path = "/home/noogh/projects/noogh_unified_system/src/data/archive/trading_insights_archive.jsonl"
+            import os
+            import json
+            if os.path.exists(archive_path):
+                try:
+                    with open(archive_path, 'r', encoding='utf-8') as f:
+                        # قراءة الملف من الأسفل للأعلى (أحدث الأرشيف أولاً)
+                        lines = f.readlines()
+                        lines.reverse()
+                        for line in lines:
+                            if needed <= 0:
+                                break
+                            try:
+                                data = json.loads(line)
+                                if 'insight' in data:
+                                    insights.append(data['insight'])
+                                    needed -= 1
+                            except json.JSONDecodeError:
+                                continue
+                except Exception as e:
+                    logger.debug(f"Archive reading error: {e}")
+
+        return insights
+
+    def perform_system_health_check(self) -> bool:
+        """
+        🛡️ NOOGH System Health Check Protocol v1.0
+        Pre-Deployment Safety Audit (Runs every 5 cycles)
+        """
+        logger.info("\\n🛡️ ====== NOOGH SYSTEM HEALTH CHECK ====== 🛡️")
+        passed_all = True
+        
+        # 1. فحص Brain (Confidence Variance & Skipping)
+        recent_confidences = []
+        skip_count = 0
+        for analysis in self.last_analysis.values():
+            if analysis and 'brain_insight' in analysis:
+                conf = analysis['brain_insight'].get('confidence', 0)
+                recent_confidences.append(conf)
+                if analysis['brain_insight'].get('decision') == 'SKIP':
+                    skip_count += 1
+
+        if len(recent_confidences) >= 3:
+            if len(set(recent_confidences)) == 1:
+                logger.error(f"🛑 RED FLAG [Brain]: Identical confidence score {recent_confidences[0]} everywhere! Possible hallucination.")
+                passed_all = False
+            else:
+                logger.info("✅ Brain Check: Confidence variance looks healthy.")
+                
+            if skip_count == 0 and len(recent_confidences) > 10:
+                logger.warning("⚠️ Warning [Brain]: Agent hasn't skipped any setup recently. It might be over-trading.")
+        else:
+            logger.info("ℹ️ Brain Check: Awaiting more data to verify confidence variance.")
+
+        # 2. فحص Binance Connection
+        try:
+            balance_info = self.binance.get_account_balance()
+            if balance_info and 'error' not in balance_info:
+                logger.info(f"✅ Binance Check: Connected | Futures balance: ${balance_info.get('total_balance', 0):.2f}")
+            else:
+                logger.error(f"🛑 RED FLAG [Binance]: Failed to fetch balance or API error: {balance_info}")
+                passed_all = False
+        except Exception as e:
+            logger.error(f"🛑 RED FLAG [Binance]: Fatal API Exception: {e}")
+            passed_all = False
+
+        # 3. فحص Position Recovery & SL Monitoring
+        open_positions = len(self.trap_trader.positions)
+        logger.info(f"✅ Recovery Check: Monitoring {open_positions} LIVE positions currently.")
+        if open_positions > 0:
+            logger.info("✅ Stop Loss Monitoring Check: Active trailing logs are expected.")
+
+        # 4 & 5. فحص Position Sizing
+        for symbol, analysis in self.last_analysis.items():
+            if not analysis: continue
+            q = analysis.get('quantity', 0)
+            
+            # Sanity check for negative quantities missing exceptions
+            if q < 0:
+                logger.error(f"🛑 RED FLAG [Sizing]: Negative quantity for {symbol} ({q})")
+                passed_all = False
+            
+            # Sanity check for massive sizes
+            notional = q * analysis.get('entry_price', 0)
+            if notional > self.tracker.active_balance * 20: # Over 20x the entire balance
+                logger.error(f"🛑 RED FLAG [Sizing]: Insanely large position sizing for {symbol}: ${notional:,.2f}!")
+                passed_all = False
+        logger.info("✅ Position Sizing Check: Passed.")
+
+        # 6. فحص Risk Guard (live_trading_threshold)
+        if self.mode in ['hybrid', 'safe-hybrid']:
+            if self.live_trading_threshold < 80 and self.live_trading_threshold != 999:
+                logger.error(f"🛑 RED FLAG [Risk Guard]: live_trading_threshold is dangerously low ({self.live_trading_threshold})!")
+                passed_all = False
+            else:
+                logger.info(f"✅ Risk Guard Check: Safe threshold -> {self.live_trading_threshold}%")
+
+        # 7. فحص Database
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+            cur.execute("SELECT count(*) FROM paper_trades")
+            pt_count = cur.fetchone()[0]
+            conn.close()
+            logger.info(f"✅ Database Check: Responsive. Paper Trades in DB: {pt_count}")
+        except Exception as e:
+            logger.error(f"🛑 RED FLAG [Database]: Error connecting or querying: {e}")
+            passed_all = False
+
+        if passed_all:
+            logger.info("🛡️ System Check PASSED. Safe to proceed.")
+        else:
+            logger.error("🚨 🛡️ System Check FAILED! Some parameters are dangerous.")
+            
+        logger.info("🛡️ ======================================== 🛡️\\n")
+        return passed_all
+
+    async def get_learning_insights(self) -> Dict:
+        """الحصول على ملخص التعلم"""
+        performance = self.paper_engine.get_performance()
+
+        # جلب آخر 5 insights
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=5)
+            cur = conn.cursor()
+
+            cur.execute("""
+                SELECT insight, created_at
+                FROM trading_insights
+                ORDER BY created_at DESC
+                LIMIT 5
+            """)
+
+            insights = [{"insight": row[0], "time": row[1]} for row in cur.fetchall()]
+            conn.close()
+
+        except Exception as e:
+            insights = []
+            logger.error(f"❌ Insights fetch error: {e}")
+
+        return {
+            'performance': performance,
+            'recent_insights': insights,
+            'open_positions': len(self.paper_engine.positions)
+        }
+
+    async def run_cycle(self):
+        """دورة تداول واحدة (يتم استدعاؤها من Agent Daemon)"""
+        self.cycle_count += 1
+
+        logger.info(f"=== Trading Cycle {self.cycle_count} ===")
+
+        # 🛡️ 8. فحص System Diagnostic كل 5 دورات
+        if self.cycle_count % 5 == 0:
+            is_healthy = self.perform_system_health_check()
+            if not is_healthy and self.mode == 'safe-hybrid':
+                logger.error("🚨 CRITICAL: System Health Check FAILED in Safe-Hybrid Mode! Aborting cycle for safety.")
+                return # Kill Switch
+            elif not is_healthy:
+                logger.warning("⚠️ Warning: System Health Check FAILED, but ignoring because mode is not safe-hybrid.")
+
+        # تحليل الأسواق
+        await self.analyze_markets()
+
+        # تنفيذ صفقات جديدة
+        await self.execute_paper_trades()
+
+        # مراقبة الصفقات المفتوحة
+        await self.monitor_paper_positions()
+
+        # عرض الأداء وأعمال الصيانة
+        if self.cycle_count % 10 == 0:  # كل 10 دورات
+            performance = self.paper_engine.get_performance()
+            logger.info(f"📊 Performance: {performance['total_trades']} trades | "
+                       f"Win Rate: {performance['win_rate']:.1f}% | "
+                       f"Balance: ${performance['balance']:.2f} | "
+                       f"ROI: {performance['roi']:+.1f}%")
+            
+            # الصيانة التلقائية للبيانات القديمة
+            self._enforce_database_limits()
+
+
+# للاختبار المباشر
+async def main():
+    from unified_core.neural_bridge import NeuralEngineClient
+    # Initialize Neural Bridge for trading
+    neural_bridge = NeuralEngineClient(
+        base_url="http://localhost:11434",
+        mode="vllm"
+    )
+    
+    agent = AutonomousTradingAgent(mode='safe-hybrid', neural_bridge=neural_bridge)
+    
+    await agent.initialize()
+
+    # تشغيل دورة واحدة (سنضع العداد 4 قبلها لاختبار System Diagnostic فورًا)
+    agent.cycle_count = 4
+    await agent.run_cycle()
+
+    # عرض النتائج
+    insights = await agent.get_learning_insights()
+    print(json.dumps(insights, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

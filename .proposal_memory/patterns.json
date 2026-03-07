@@ -1,0 +1,37 @@
+[
+  {
+    "pattern_id": "cat_pattern",
+    "pattern_type": "category_pattern",
+    "description": "الرفض المتكرر لـ pattern",
+    "occurrences": 5,
+    "examples": [
+      "IMP-0001",
+      "IMP-0002",
+      "IMP-0003"
+    ],
+    "recommendation": "كن أكثر حذراً مع ملفات pattern",
+    "confidence": 0.95
+  },
+  {
+    "pattern_id": "issue_bare_except",
+    "pattern_type": "issue_pattern",
+    "description": "الرفض المتكرر لـ bare_except",
+    "occurrences": 4,
+    "examples": [
+      "IMP-0001"
+    ],
+    "recommendation": "إعادة تقييم أسلوب معالجة bare_except",
+    "confidence": 0.9
+  },
+  {
+    "pattern_id": "issue_test_issue",
+    "pattern_type": "issue_pattern",
+    "description": "الرفض المتكرر لـ test_issue",
+    "occurrences": 1,
+    "examples": [
+      "IMP-0001"
+    ],
+    "recommendation": "إعادة تقييم أسلوب معالجة test_issue",
+    "confidence": 0.6
+  }
+]

@@ -1,0 +1,31 @@
+# config.py
+
+class SingletonMeta(type):
+    """
+    This is a metaclass for implementing the Singleton pattern.
+    """
+    _instances = {}
+    
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+class Config(metaclass=SingletonMeta):
+    """
+    Singleton class for managing configuration.
+    """
+    def __init__(self):
+        self.config_data = {}
+        # Load configuration data from a file or API here
+    
+    def get_config(self, key):
+        return self.config_data.get(key)
+    
+    def set_config(self, key, value):
+        self.config_data[key] = value
+
+# Usage
+config_instance = Config()
+print(config_instance.get_config('api_key'))

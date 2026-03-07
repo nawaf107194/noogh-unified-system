@@ -1,0 +1,71 @@
+import asyncio
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from gateway.app.core.agent_kernel import AgentKernel, KernelConfig, AuthContext
+import uvicorn
+import logging
+
+# إعداد الـ logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("noogh_api")
+
+app = FastAPI(title="NOOGH API for Integromat")
+
+# إعداد التهيئة
+config = KernelConfig(
+    max_iterations=5,
+    enable_learning=False,
+    enable_dream_mode=False 
+)
+
+# تهيئة النواة (Kernel) كمتغير عالمي
+kernel = None
+
+# إصلاح AuthContext: إضافة الـ token المطلوب
+# سنستخدم "NOOGH_MASTER_TOKEN" كقيمة افتراضية للربط
+try:
+    auth = AuthContext(
+        user_id="make_integration", 
+        token="NOOGH_MASTER_TOKEN", # هذا هو البارامتر الذي كان ناقصاً
+        scopes=["*"]
+    )
+except TypeError:
+    # في حال كان ترتيب البارامترات مختلفاً في ملفك
+    auth = AuthContext("make_integration", "NOOGH_MASTER_TOKEN", ["*"])
+
+@app.on_event("startup")
+async def startup_event():
+    global kernel
+    try:
+        kernel = AgentKernel(config=config)
+        logger.info("✅ NOOGH Kernel initialized and ready for Integromat")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Kernel: {e}")
+
+class QueryRequest(BaseModel):
+    task: str
+
+@app.post("/process")
+async def process_task(request: QueryRequest):
+    if kernel is None:
+        raise HTTPException(status_code=503, detail="Kernel not initialized")
+    
+    try:
+        logger.info(f"📥 Received task: {request.task}")
+        
+        # تنفيذ المهمة عبر النواة
+        result = kernel.process(request.task, auth=auth)
+        
+        return {
+            "success": result.success,
+            "answer": result.answer,
+            "steps": result.steps,
+            "error": result.error,
+            "processing_time": result.processing_time_ms
+        }
+    except Exception as e:
+        logger.error(f"❌ Error during processing: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

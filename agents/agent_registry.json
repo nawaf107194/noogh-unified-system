@@ -1,0 +1,1293 @@
+[
+    {
+        "agent_id": "ai_tool_scout",
+        "name": "AIToolScoutAgent",
+        "role": "ai_tool_scout",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/ai_tool_scout_agent.py",
+        "capabilities": [
+            "SCOUT_AI_TOOLS",
+            "EVALUATE_INTEGRATIONS",
+            "OPENPEDIA_SYNC"
+        ],
+        "reason": "Identify and integrate new AI tools autonomously",
+        "created_at": 1773010000.0,
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "research_specialist",
+        "name": "ResearchSpecialistAgent",
+        "role": "research_specialist",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/research_specialist_agent.py",
+        "capabilities": [
+            "THINK_DEEP",
+            "SYNTHESIZE_RESEARCH"
+        ],
+        "reason": "Provide deep research and analytical thinking capabilities",
+        "created_at": 1773015000.0,
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "sales_automation",
+        "name": "SalesAutomationAgent",
+        "role": "sales_automation",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/sales_automation_agent.py",
+        "capabilities": [
+            "GENERATE_STRATEGIC_RESPONSE",
+            "OPTIMIZE_SALES_FUNNEL"
+        ],
+        "reason": "Automate and optimize sales responses and funnels",
+        "created_at": 1773020000.0,
+        "deployed_via": "manual"
+    },
+    {
+        "name": "HealthMonitorAgent",
+        "role": "health_monitor",
+        "file": "agents/health_monitor_agent.py",
+        "capabilities": [
+            "MONITOR_HEALTH",
+            "CHECK_SERVICES"
+        ],
+        "created_at": 1771101444.55
+    },
+    {
+        "name": "LogAnalyzerAgent",
+        "role": "log_analyzer",
+        "file": "agents/log_analyzer_agent.py",
+        "capabilities": [
+            "ANALYZE_LOGS",
+            "DETECT_ERROR_PATTERNS"
+        ],
+        "created_at": 1771101444.55
+    },
+    {
+        "name": "WebResearchAgent",
+        "role": "web_researcher",
+        "file": "agents/web_researcher_agent.py",
+        "capabilities": [
+            "WEB_SEARCH",
+            "FETCH_PAGE",
+            "SUMMARIZE_FINDINGS"
+        ],
+        "reason": "Enable live internet research and knowledge gathering",
+        "created_at": 1771111000.0,
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "brain_dependency_auditor_1771106500",
+        "name": "DependencyAuditorAgent",
+        "role": "dependency_auditor",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/dependency_auditor_agent.py",
+        "capabilities": [
+            "AUDIT_DEPS",
+            "CHECK_VULNERABILITIES"
+        ],
+        "reason": "Security requires knowing dependency health",
+        "created_at": 1771166555.3728156,
+        "proposal_id": "agent_brain_1771106500_dependency_auditor",
+        "deployed_via": "evolution_pipeline"
+    },
+    {
+        "agent_id": "brain_test_runner_1771106811",
+        "name": "TestRunnerAgent",
+        "role": "test_runner",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/test_runner_agent.py",
+        "capabilities": [
+            "RUN_TESTS",
+            "REPORT_COVERAGE"
+        ],
+        "reason": "Evolution pipeline needs test feedback for canary validation",
+        "created_at": 1771166555.3769333,
+        "proposal_id": "agent_brain_1771106811_test_runner",
+        "deployed_via": "evolution_pipeline"
+    },
+    {
+        "agent_id": "performance_profiler",
+        "name": "PerformanceProfilerAgent",
+        "role": "performance_profiler",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/performance_profiler_agent.py",
+        "capabilities": [
+            "PROFILE_CODE",
+            "IDENTIFY_BOTTLENECKS"
+        ],
+        "reason": "Code refactoring needs performance data to prioritize",
+        "created_at": 1771281631.2169902,
+        "proposal_id": "agent_spawn_1771275534_performance_profiler",
+        "deployed_via": "evolution_pipeline"
+    },
+    {
+        "agent_id": "backup_agent",
+        "name": "BackupAgentAgent",
+        "role": "backup_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/backup_agent_agent.py",
+        "capabilities": [
+            "CREATE_BACKUP",
+            "VERIFY_BACKUP"
+        ],
+        "reason": "System resilience requires automated backups",
+        "created_at": 1771281631.2230532,
+        "proposal_id": "agent_spawn_1771275534_backup_agent",
+        "deployed_via": "evolution_pipeline"
+    },
+    {
+        "agent_id": "pipeline_optimizer",
+        "name": "PipelineOptimizerAgent",
+        "role": "pipeline_optimizer",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/pipeline_optimizer_agent.py",
+        "capabilities": [
+            "AUDIT_PIPELINE",
+            "OPTIMIZE_PIPELINE",
+            "ESTABLISH_PIPELINE_SECURITY"
+        ],
+        "reason": "Ensure self-optimizing system safeguards its own evolution pipeline",
+        "created_at": 1772000000.0,
+        "proposal_id": "agent_spawn_pipeline_optimization",
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "tiktok_auditor",
+        "name": "TikTokAuditorAgent",
+        "role": "tiktok_auditor",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tiktok_auditor_agent.py",
+        "capabilities": [
+            "MONITOR_TIKTOK_ACCOUNT",
+            "ANALYZE_VIDEO"
+        ],
+        "reason": "Monitor @high_tech02 TikTok for tech news",
+        "created_at": 1771796150.3877287,
+        "proposal_id": "manual_tiktok_injection",
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "rapid_prototyping",
+        "name": "RapidPrototypingAgent",
+        "role": "rapid_prototyping",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/rapid_prototyping_agent.py",
+        "capabilities": [
+            "RAPID_PROTOTYPE"
+        ],
+        "reason": "AI-first sandbox prototyping module inspired by Cursor/Bolt OCR.",
+        "created_at": 1772005000.0,
+        "proposal_id": "tiktok_innovation_real",
+        "deployed_via": "manual"
+    },
+    {
+        "agent_id": "security_audit",
+        "name": "SecurityAuditAgent",
+        "role": "security_auditor",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/security_audit_agent.py",
+        "capabilities": [
+            "SECURITY_SCAN",
+            "RESOURCE_AUDIT"
+        ],
+        "reason": "Sovereign decision: System requires security auditing and GPU management for RapidPrototyping",
+        "created_at": 1772010000.0,
+        "proposal_id": "sovereign_decision_audit",
+        "deployed_via": "autonomous_sovereignty"
+    },
+    {
+        "name": "AutonomousTradingAgent",
+        "role": "autonomous_trading_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/autonomous_trading_agent.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772658259.1460361,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AutonomousTradingAgent",
+        "role": "monitor_only_mode",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/monitor_only_mode.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772215714.0546894,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AutonomousTradingAgent",
+        "role": "run_autonomous_agent_continuous",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/run_autonomous_agent_continuous.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772229959.0656383,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "Agent",
+        "role": "base_agent_1771673767",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/base_agent_1771673767.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1771673767.408452,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "BaseAgent",
+        "role": "base_agent_1772549427",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/base_agent_1772549427.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772549427.8664277,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "FileManagerAgent",
+        "role": "file_manager_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/file_manager_agent.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1770463081.5412712,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "BaseAgent",
+        "role": "base_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/base_agent.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1771335075.1101987,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "CodeExecutorAgent",
+        "role": "code_executor_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/code_executor_agent.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772494615.1007645,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AutonomousTradingAgent",
+        "role": "test_autonomous_trap_integration",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/test_autonomous_trap_integration.py",
+        "capabilities": [
+            "UNKNOWN_CAPABILITY"
+        ],
+        "reason": "Auto-discovered by register_agents.py",
+        "created_at": 1772207309.2924578,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBenchmarkAgentAdapter",
+        "role": "test_benchmark_adapter",
+        "file": "/home/noogh/projects/noogh_unified_system/src/tests/ai_compliance/test_benchmark_adapter.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.0729675,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestPerAgentLimiting",
+        "role": "test_message_flooding",
+        "file": "/home/noogh/projects/noogh_unified_system/src/tests/phase2/test_message_flooding.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.0791123,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentClient",
+        "role": "test_message_authentication",
+        "file": "/home/noogh/projects/noogh_unified_system/src/tests/phase2/test_message_authentication.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.0805418,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockDevAgent",
+        "role": "test_code_injection",
+        "file": "/home/noogh/projects/noogh_unified_system/src/tests/phase3/test_code_injection.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.0900593,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockSecOpsAgent",
+        "role": "test_secops_audit",
+        "file": "/home/noogh/projects/noogh_unified_system/src/tests/phase3/test_secops_audit.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.092174,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentKernel",
+        "role": "test_agent_kernel",
+        "file": "/home/noogh/projects/noogh_unified_system/src/gateway/app/tests/test_agent_kernel.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.1603308,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentController",
+        "role": "test_agent_controller",
+        "file": "/home/noogh/projects/noogh_unified_system/src/gateway/app/core/tests/test_agent_controller.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771893431.4123418,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentKernel",
+        "role": "test_training_harness",
+        "file": "/home/noogh/projects/noogh_unified_system/src/gateway/app/core/tests/test_training_harness.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771896575.0668948,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentHealthChecker",
+        "role": "test_agent_health_checker",
+        "file": "/home/noogh/projects/noogh_unified_system/src/scripts/tests/test_agent_health_checker.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772359834.3940892,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "UnifiedIntelligentAgent",
+        "role": "unified_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/neural_engine/autonomic_system/unified_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.5055683,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SelfGoverningAgent",
+        "role": "self_governor",
+        "file": "/home/noogh/projects/noogh_unified_system/src/neural_engine/autonomic_system/self_governor.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771257510.5226333,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgent",
+        "role": "test_evaluate_elite_innovation_1772476440",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_evaluate_elite_innovation_1772476440.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772476440.2380106,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAsyncAgent",
+        "role": "test_dependency_auditor_agent_innovation_1772465106",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_dependency_auditor_agent_innovation_1772465106.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772465106.3158648,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestPerformanceProfilerAgentInit",
+        "role": "test_performance_profiler_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_performance_profiler_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771433387.142271,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "WebResearcherAgent",
+        "role": "test_web_researcher_agent_innovation_1772292234",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_web_researcher_agent_innovation_1772292234.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772292234.1672869,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestDependencyAuditorAgent",
+        "role": "test_dependency_auditor_agent_innovation_1772360034",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_dependency_auditor_agent_innovation_1772360034.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772360034.8645434,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestPipelineOptimizerAgent",
+        "role": "test_pipeline_optimizer_agent_innovation_1771975610",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_pipeline_optimizer_agent_innovation_1771975610.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771975610.8344178,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestCodeExecutorAgent",
+        "role": "test_code_executor_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_code_executor_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771903242.315552,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgent",
+        "role": "test_agent_reconfiguration_manager_innovation_1772453549",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_agent_reconfiguration_manager_innovation_1772453549.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772453549.4181864,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBackupAgentAgent",
+        "role": "test_backup_agent_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_backup_agent_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772089988.6667333,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBackupAgentAgent",
+        "role": "test_backup_agent_agent_innovation_1772384833",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_backup_agent_agent_innovation_1772384833.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772384833.1516957,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestHealthMonitorAgent",
+        "role": "test_health_monitor_agent_innovation_1771899934",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_health_monitor_agent_innovation_1771899934.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771899934.4848857,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestHealthMonitorAgentInit",
+        "role": "test_health_monitor_agent_innovation_1771442518",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_health_monitor_agent_innovation_1771442518.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771442518.5801306,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgent",
+        "role": "test_agent_reconfiguration_manager",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_agent_reconfiguration_manager.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771898336.4204013,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockServerControlAgent",
+        "role": "test_server_control_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_server_control_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772250930.4101152,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBackupAgentAgent",
+        "role": "test_backup_agent_agent_innovation_1772460553",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_backup_agent_agent_innovation_1772460553.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772460554.0035622,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBaseAgentIsRunning",
+        "role": "test_base_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_base_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771803454.812496,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestLogAnalyzerAgent",
+        "role": "test_log_analyzer_agent_innovation_1772274777",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_log_analyzer_agent_innovation_1772274777.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772274777.395689,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestWebResearcherAgentHandleEndtag",
+        "role": "test_web_researcher_agent_innovation_1772115951",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_web_researcher_agent_innovation_1772115951.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772115951.6365101,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentSuperClass",
+        "role": "test_dependency_auditor_agent_innovation_1771980707",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_dependency_auditor_agent_innovation_1771980707.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771980707.6146646,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockWebResearcherAgent",
+        "role": "test_web_researcher_agent_innovation_1771973531",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_web_researcher_agent_innovation_1771973531.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771973531.4204075,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockServerControlAgent",
+        "role": "test_server_control_agent_innovation_1772378260",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_server_control_agent_innovation_1772378260.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772378260.8404405,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestCodeExecutorAgent",
+        "role": "test_code_executor_agent_innovation_1771929178",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_code_executor_agent_innovation_1771929178.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771929178.5324664,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBaseAgentInit",
+        "role": "test_base_agent_innovation_1772418855",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_base_agent_innovation_1772418855.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772418855.3150902,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBackupAgentAgent",
+        "role": "test_backup_agent_agent_innovation_1772407371",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_backup_agent_agent_innovation_1772407371.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772407371.177757,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgent",
+        "role": "test_base_agent_innovation_1772482485",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_base_agent_innovation_1772482485.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772482485.8034315,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockTikTokAuditorAgent",
+        "role": "test_tiktok_auditor_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_tiktok_auditor_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772341394.0244107,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestLogAnalyzerAgent",
+        "role": "test_log_analyzer_agent_innovation_1772257112",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_log_analyzer_agent_innovation_1772257112.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772257113.6450257,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "DependencyAuditorAgent",
+        "role": "test_dependency_auditor_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_dependency_auditor_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771296195.1531374,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestLogAnalyzerAgent",
+        "role": "test_log_analyzer_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_log_analyzer_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771458136.4283502,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestBackupAgentAgent",
+        "role": "test_backup_agent_agent_innovation_1772332787",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_backup_agent_agent_innovation_1772332787.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772332787.2296546,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestPipelineOptimizerAgent",
+        "role": "test_pipeline_optimizer_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/agents/tests/test_pipeline_optimizer_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771799765.2457097,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SecOpsAgent",
+        "role": "secops_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/secops_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.5729632,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SecOpsAgent",
+        "role": "architecture_1772078543",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/architecture_1772078543.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772078543.8489676,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "BenchmarkAgentAdapter",
+        "role": "benchmark_adapter",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/benchmark_adapter.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.6127608,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "DevAgent",
+        "role": "dev_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/dev_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770484284.4563782,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SmolAgentsAdapter",
+        "role": "tools_hub",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tools_hub.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771042049.2202165,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SecOpsAgent",
+        "role": "secops_agent_1771980384",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/secops_agent_1771980384.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771980384.545689,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "CodeExecutorAgent",
+        "role": "agent_worker",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/agent_worker.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772497767.00349,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "BaseAgent",
+        "role": "base_agent_1",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/base_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463104.7259486,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentWorkerInit",
+        "role": "test_agent_worker_innovation_1772154965",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/tests/test_agent_worker_innovation_1772154965.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772154965.01682,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentWorkerInit",
+        "role": "test_agent_worker",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/tests/test_agent_worker.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771894928.2535625,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentWorker",
+        "role": "test_agent_worker_innovation_1772433459",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/tests/test_agent_worker_innovation_1772433459.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772433459.2994354,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgent",
+        "role": "test_base_agent_1",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/orchestration/tests/test_base_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771945570.9505506,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockMetaAgent",
+        "role": "test_dreamer_innovation_1772102106",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_dreamer_innovation_1772102106.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772102106.1362388,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentLearningHubInit",
+        "role": "test_agent_learning_innovation_1771446214",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_agent_learning_innovation_1771446214.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771446215.2121704,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockSecOpsAgent",
+        "role": "test_secops_agent_innovation_1772415568",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_secops_agent_innovation_1772415568.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772415568.6091259,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestSecOpsAgent",
+        "role": "test_secops_agent_innovation_1771658125",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_secops_agent_innovation_1771658125.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771658125.894576,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentMessage",
+        "role": "test_messaging",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_messaging.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1770463081.6024163,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockMetaAgent",
+        "role": "test_dreamer",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_dreamer.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771375721.0293033,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "SecOpsAgent",
+        "role": "test_secops_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/tests/test_secops_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771387945.7099526,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MultiAgent",
+        "role": "multi_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/system/multi_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772322506.7875078,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AdversarialSelfAuditAgent",
+        "role": "asaa",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/core/asaa.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772819596.0726676,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AdversarialMilitaryAuditAgent",
+        "role": "amla",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/core/amla.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772819662.887215,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentDaemon",
+        "role": "test_meta_governor_innovation_1772366674",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/core/tests/test_meta_governor_innovation_1772366674.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772366674.5371184,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "CreativeEvolutionAgent",
+        "role": "creative_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/creative_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771668087.9946828,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestGetCreativeAgent",
+        "role": "test_creative_agent_innovation_1771918085",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_creative_agent_innovation_1771918085.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771918085.9481153,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestCreativeAgent",
+        "role": "test_creative_agent_innovation_1772386028",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_creative_agent_innovation_1772386028.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772386028.7736883,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentFactory",
+        "role": "test_agent_factory_innovation_1771906796",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_agent_factory_innovation_1771906796.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771906796.2519913,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "CreativeAgent",
+        "role": "test_creative_agent_innovation_1772158206",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_creative_agent_innovation_1772158206.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772158206.253503,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestCreativeAgentInit",
+        "role": "test_creative_agent",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_creative_agent.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771412154.6380153,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "TestAgentFactory",
+        "role": "test_agent_factory_innovation_1771451394",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_agent_factory_innovation_1771451394.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771451394.8438454,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "MockAgentFactory",
+        "role": "test_agent_factory",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/tests/test_agent_factory.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1771371376.174317,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AdvancedMemorySummarizerAgent",
+        "role": "advanced_memory_summarizer",
+        "file": "/home/noogh/projects/noogh_unified_system/src/unified_core/system/advanced_memory_summarizer.py",
+        "capabilities": [
+            "AUTO_DISCOVERED"
+        ],
+        "created_at": 1772841327.5031831,
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    },
+    {
+        "name": "AIToolScoutAgent",
+        "role": "ai_tool_scout",
+        "file": "/home/noogh/agents/ai_tool_scout_agent.py",
+        "capabilities": [
+            "DISCOVER_TOOLS",
+            "EVALUATE_TOOLS",
+            "SUGGEST_INTEGRATIONS",
+            "TRACK_TRENDS"
+        ],
+        "reason": "Automatically discover and evaluate AI tools from OpenPedia and other sources for potential integration",
+        "created_at": 1741370400.0,
+        "deployed_via": "manual",
+        "validation": {
+            "valid": true,
+            "violations": []
+        }
+    }
+]++

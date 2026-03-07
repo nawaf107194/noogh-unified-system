@@ -1,0 +1,343 @@
+"""
+ReAct Engine Component
+Handles the core THINK -> ACT -> OBSERVATION loop.
+Extracted from AgentKernel during Refactoring Phase 1.
+"""
+
+from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from gateway.app.core.protocol import SecureReActParser
+
+@dataclass
+class ReActConfig:
+    max_iterations: int = 15
+    strict_protocol: bool = True
+
+class ReActEngine:
+    """Core engine for executing ReAct loops."""
+
+    def __init__(self, parser: SecureReActParser, memory_manager: Any, config: ReActConfig = None):
+        self.parser = parser
+        self.memory = memory_manager
+        self.config = config or ReActConfig()
+
+    def build_iteration_prompt(self, task: str, system_prompt: str) -> str:
+        """Build prompt for current iteration, reinforcing the PERSONA."""
+        memory_context = ""
+        recent = self.memory.get_recent(5)
+        if recent:
+            memory_context = "\n\n[HISTORY & OBSERVATIONS]\n" + "\n".join(f"- {obs}" for obs in recent)
+
+        # Reinforce Persona at the start of every turn
+        full_prompt = (
+            f"{system_prompt}\n"
+            f"--------------------------------------------------\n"
+            f"[CURRENT TASK]\n{task}\n"
+            f"{memory_context}\n"
+            f"--------------------------------------------------THINK -> ACT -> OBSERVATION\n"
+            f"REMINDER: Stay in your assigned MINDSET. Use the ReAct protocol (THINK -> ACT -> OBSERVATION).THINK -> ACT -> OBSERVATION\n"
+            f"To finish, use ANSWER: [your final answer] or 'Final Answer: [result]'.\n"
+            f"THINK:"
+        )
+        return full_prompt
+
+    def _is_error_response(self, response: str) -> bool:
+        """Check if response contains error patterns."""
+        # Check for raw error responses
+        if response.startswith(("Error:", "Error during generation:", "Gemini Unavailable")):
+            return True
+        
+        # Check for CUDA memory errors
+        if any(cuda_error in response for cuda_error in [
+            "CUBLAS_STATUS_ALLOC_FAILED", "CUDA out of memory", 
+            "CUDA error", "memory allocation failed", "insufficient memory"
+        ]):
+            return True
+        
+        # Check for error patterns in parsed ReAct responses
+        if "ANSWER:" in response:
+            import re
+            answer_match = re.search(r'ANSWER:\s*(.+?)(?=\n|$)', response, re.DOTALL | re.IGNORECASE)
+            if answer_match:
+                answer = answer_match.group(1).strip()
+                if any(error_pattern in answer for error_pattern in [
+                    "Error processing query", "Error:", "failed", "unavailable", "not loaded",
+                    "CUBLAS_STATUS_ALLOC_FAILED", "CUDA out of memory", "memory allocation failed"
+                ]):
+                    return True
+        
+        return False
+
+    def _is_gpu_memory_exhausted(self) -> bool:
+        """Check if GPU memory is critically low for model operations."""
+        try:
+            # Try to import and use the GPU memory manager
+            from gateway.app.core.resource_governor import gpu_manager
+            
+            stats = gpu_manager.get_stats()
+            free_vram_gb = stats.get("free_vram_gb", 0)
+            
+            # Consider memory exhausted if less than 1GB available
+            if free_vram_gb < 1.0:
+                return True
+                
+        except ImportError:
+            # Fallback if resource_governor is not available
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    free, total = torch.cuda.mem_get_info()
+                    free_gb = free / (1024**3)
+                    if free_gb < 1.0:
+                        return True
+            except Exception:
+                pass
+                
+        except Exception:
+            # If any other error occurs, assume memory is available
+            pass
+            
+        return False
+
+    def generate_and_parse(
+        self,
+        brain: Any,
+        prompt: str,
+        execution_allowed: bool,
+        iteration: int,
+        reasoning_chain: List,
+    ) -> Dict[str, Any]:
+        """Generate response from brain and parse it."""
+        try:
+            # Check GPU memory status before generation
+            if self._is_gpu_memory_exhausted():
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                error_result = AgentResult(
+                    success=False,
+                    answer="System temporarily unavailable due to GPU memory constraints. Please try again later.",
+                    steps=iteration,
+                    error="GPU_MEMORY_EXHAUSTED",
+                    metadata={"error_type": "MEMORY_LIMIT"}
+                )
+                
+                return {
+                    "error": "GPU memory exhausted",
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            raw_response = brain.generate(prompt)
+
+            # Check if response contains any error patterns
+            if self._is_error_response(raw_response):
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                # Handle CUDA memory errors specifically
+                if "CUBLAS_STATUS_ALLOC_FAILED" in raw_response or "CUDA out of memory" in raw_response:
+                    error_result = AgentResult(
+                        success=False,
+                        answer="System overloaded: GPU memory exhausted. Please try a simpler request or wait a moment.",
+                        steps=iteration,
+                        error="GPU_MEMORY_EXHAUSTED",
+                        metadata={"raw_response": raw_response, "error_type": "CUDA_MEMORY"}
+                    )
+                else:
+                    error_result = AgentResult(
+                        success=False,
+                        answer=raw_response,
+                        steps=iteration,
+                        error="BRAIN_GENERATION_ERROR",
+                        metadata={"raw_response": raw_response}
+                    )
+                
+                return {
+                    "error": raw_response,
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            # Record reasoning step
+            reasoning_chain.append({
+                "step": iteration,
+                "thought": raw_response[:500] + "..." if len(raw_response) > 500 else raw_response,
+            })
+
+            # Parse response
+            parsed = self.parser.parse(
+                raw_response, strict=self.config.strict_protocol, allow_actions=execution_allowed
+            )
+            
+            # Check if parsed answer contains errors
+            if parsed.answer and self._is_error_response(parsed.answer):
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                error_result = AgentResult(
+                    success=False,
+                    answer=parsed.answer,
+                    steps=iteration,
+                    error="BRAIN_GENERATION_ERROR",
+                    metadata={"parsed_response": parsed}
+                )
+                
+                return {
+                    "error": parsed.answer,
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            return {"parsed": parsed}
+
+        except Exception as e:
+            # Handle generation failures gracefully by creating a proper AgentResult
+            from gateway.app.core.agent_kernel import AgentResult
+            
+            # Check for CUDA memory errors in exception
+            error_msg = str(e)
+            if "CUDA" in error_msg or "memory" in error_msg.lower():
+                error_result = AgentResult(
+                    success=False,
+                    answer="System temporarily unavailable due to resource constraints. Please try again later.",
+                    steps=iteration,
+                    error="GPU_MEMORY_EXHAUSTED",
+                    metadata={"error_details": error_msg, "error_type": "CUDA_MEMORY"}
+                )
+            else:
+                error_result = AgentResult(
+                    success=False,
+                    answer=f"Error during response generation: {error_msg}",
+                    steps=iteration,
+                    error="GENERATION_ERROR",
+                    metadata={"error_details": error_msg}
+                )
+            
+            return {
+                "error": error_msg,
+                "should_continue": False,
+                "result": error_result
+            }
+
+    async def generate_and_parse_async(
+        self,
+        brain: Any,
+        prompt: str,
+        execution_allowed: bool,
+        iteration: int,
+        reasoning_chain: List,
+    ) -> Dict[str, Any]:
+        """Async version of generate_and_parse for non-blocking execution."""
+        try:
+            # Check GPU memory status before generation
+            if self._is_gpu_memory_exhausted():
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                error_result = AgentResult(
+                    success=False,
+                    answer="System temporarily unavailable due to GPU memory constraints. Please try again later.",
+                    steps=iteration,
+                    error="GPU_MEMORY_EXHAUSTED",
+                    metadata={"error_type": "MEMORY_LIMIT"}
+                )
+                
+                return {
+                    "error": "GPU memory exhausted",
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            # Use async generate if available, otherwise fallback to sync
+            if hasattr(brain, 'generate_async'):
+                raw_response = await brain.generate_async(prompt)
+            else:
+                # Run sync generate in executor to not block
+                import asyncio
+                loop = asyncio.get_event_loop()
+                raw_response = await loop.run_in_executor(None, brain.generate, prompt)
+
+            # Check if response contains any error patterns
+            if self._is_error_response(raw_response):
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                # Handle CUDA memory errors specifically
+                if "CUBLAS_STATUS_ALLOC_FAILED" in raw_response or "CUDA out of memory" in raw_response:
+                    error_result = AgentResult(
+                        success=False,
+                        answer="System overloaded: GPU memory exhausted. Please try a simpler request or wait a moment.",
+                        steps=iteration,
+                        error="GPU_MEMORY_EXHAUSTED",
+                        metadata={"raw_response": raw_response, "error_type": "CUDA_MEMORY"}
+                    )
+                else:
+                    error_result = AgentResult(
+                        success=False,
+                        answer=raw_response,
+                        steps=iteration,
+                        error="BRAIN_GENERATION_ERROR",
+                        metadata={"raw_response": raw_response}
+                    )
+                
+                return {
+                    "error": raw_response,
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            # Record reasoning step
+            reasoning_chain.append({
+                "step": iteration,
+                "thought": raw_response[:500] + "..." if len(raw_response) > 500 else raw_response,
+            })
+
+            # Parse response
+            parsed = self.parser.parse(
+                raw_response, strict=self.config.strict_protocol, allow_actions=execution_allowed
+            )
+            
+            # Check if parsed answer contains errors
+            if parsed.answer and self._is_error_response(parsed.answer):
+                from gateway.app.core.agent_kernel import AgentResult
+                
+                error_result = AgentResult(
+                    success=False,
+                    answer=parsed.answer,
+                    steps=iteration,
+                    error="BRAIN_GENERATION_ERROR",
+                    metadata={"parsed_response": parsed}
+                )
+                
+                return {
+                    "error": parsed.answer,
+                    "should_continue": False,
+                    "result": error_result
+                }
+
+            return {"parsed": parsed}
+
+        except Exception as e:
+            # Handle generation failures gracefully by creating a proper AgentResult
+            from gateway.app.core.agent_kernel import AgentResult
+            
+            # Check for CUDA memory errors in exception
+            error_msg = str(e)
+            if "CUDA" in error_msg or "memory" in error_msg.lower():
+                error_result = AgentResult(
+                    success=False,
+                    answer="System temporarily unavailable due to resource constraints. Please try again later.",
+                    steps=iteration,
+                    error="GPU_MEMORY_EXHAUSTED",
+                    metadata={"error_details": error_msg, "error_type": "CUDA_MEMORY"}
+                )
+            else:
+                error_result = AgentResult(
+                    success=False,
+                    answer=f"Error during response generation: {error_msg}",
+                    steps=iteration,
+                    error="GENERATION_ERROR",
+                    metadata={"error_details": error_msg}
+                )
+            
+            return {
+                "error": error_msg,
+                "should_continue": False,
+                "result": error_result
+            }

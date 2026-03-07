@@ -1,0 +1,1 @@
+{"output":"Error: Command 'import' is not allowed.","status":"executed","command":"import os; os.system('id')","error":null}

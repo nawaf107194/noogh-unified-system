@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="NOOGH Sovereign Neural OS - Control Plane Dashboard" />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <title>🔴 NOOGH Sovereign | Neural OS</title>
+    
+    <style>
+      * {
+        font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      
+      /* Loading Screen */
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      
+      .loader-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: white;
+        font-weight: 900;
+        box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+        animation: pulse-glow 2s ease-in-out infinite;
+      }
+      
+      .loader-text {
+        margin-top: 24px;
+        font-size: 14px;
+        color: #64748b;
+        letter-spacing: 2px;
+      }
+      
+      .loader-bar {
+        width: 200px;
+        height: 4px;
+        background: #1e293b;
+        border-radius: 4px;
+        margin-top: 16px;
+        overflow: hidden;
+      }
+      
+      .loader-bar-inner {
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        border-radius: 4px;
+        animation: loader-move 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3); }
+        50% { box-shadow: 0 20px 80px rgba(139, 92, 246, 0.4); }
+      }
+      
+      @keyframes loader-move {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(150%); }
+        100% { transform: translateX(400%); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <div class="loader-logo">N</div>
+      <div class="loader-text">INITIALIZING SOVEREIGN SYSTEM</div>
+      <div class="loader-bar">
+        <div class="loader-bar-inner"></div>
+      </div>
+    </div>
+    
+    <!-- React Root -->
+    <div id="root"></div>
+    
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <script>
+      // Hide loading screen when React mounts
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const loader = document.getElementById('loading-screen');
+          if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 500);
+          }
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

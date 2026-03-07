@@ -1,0 +1,364 @@
+{
+    "_meta": {
+        "version": "2.0.0",
+        "created": "2026-01-23",
+        "status": "CANONICAL",
+        "description": "NOOGH Global Tool Mapping Spec - Aligned with Unified Definitions"
+    },
+    "principles": {
+        "model_cannot_invent_tools": true,
+        "model_cannot_decide_permissions": true,
+        "no_smart_fallback": true,
+        "every_tool_has_actuator_or_pure": true,
+        "strict_schema_required": true,
+        "mismatch_causes_failure_and_scar": true
+    },
+    "output_contract": {
+        "format": {
+            "tool_name": "<one_of_registry>",
+            "arguments": {}
+        },
+        "forbidden": [
+            "free_text",
+            "explanations",
+            "chain_of_thought",
+            "multiple_tools_unless_benchmark_allows"
+        ]
+    },
+    "tools": {
+        "fs.read": {
+            "category": "filesystem",
+            "actuator": "pure",
+            "description": "Read content from a file",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true,
+                    "description": "File path to read"
+                }
+            }
+        },
+        "fs.write": {
+            "category": "filesystem",
+            "actuator": "filesystem",
+            "description": "Write content to a file",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true,
+                    "description": "File path to write"
+                },
+                "content": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Content to write"
+                }
+            }
+        },
+        "fs.delete": {
+            "category": "filesystem",
+            "actuator": "filesystem",
+            "description": "Delete a file permanently",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true,
+                    "description": "File path to delete"
+                }
+            }
+        },
+        "fs.list": {
+            "category": "filesystem",
+            "actuator": "pure",
+            "description": "List files and directories",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Directory path to list"
+                }
+            }
+        },
+        "fs.exists": {
+            "category": "filesystem",
+            "actuator": "pure",
+            "description": "Check if a file or directory exists",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Path to check"
+                }
+            }
+        },
+        "net.http_get": {
+            "category": "network",
+            "actuator": "network",
+            "description": "Send HTTP GET request",
+            "schema": {
+                "url": {
+                    "type": "string",
+                    "required": true,
+                    "description": "URL to request"
+                },
+                "headers": {
+                    "type": "object",
+                    "required": false,
+                    "description": "Optional headers"
+                }
+            }
+        },
+        "net.http_post": {
+            "category": "network",
+            "actuator": "network",
+            "description": "Send HTTP POST request",
+            "schema": {
+                "url": {
+                    "type": "string",
+                    "required": true,
+                    "description": "URL to request"
+                },
+                "data": {
+                    "type": "object",
+                    "required": false,
+                    "description": "JSON data to send"
+                },
+                "headers": {
+                    "type": "object",
+                    "required": false,
+                    "description": "Optional headers"
+                }
+            }
+        },
+        "proc.run": {
+            "category": "process",
+            "actuator": "process",
+            "description": "Run a shell command",
+            "schema": {
+                "command": {
+                    "type": "array",
+                    "required": true,
+                    "description": "Command and arguments"
+                },
+                "cwd": {
+                    "type": "string",
+                    "required": false,
+                    "description": "Working directory"
+                }
+            }
+        },
+        "code.exec_python": {
+            "category": "code",
+            "actuator": "sandbox",
+            "description": "Execute Python code",
+            "schema": {
+                "code": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Python code to execute"
+                }
+            }
+        },
+        "mem.search": {
+            "category": "memory",
+            "actuator": "neural_client",
+            "description": "Search long-term memory",
+            "schema": {
+                "query": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Search query"
+                },
+                "n_results": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 3,
+                    "description": "Number of results"
+                }
+            }
+        },
+        "mem.record": {
+            "category": "memory",
+            "actuator": "neural_client",
+            "description": "Record insight",
+            "schema": {
+                "content": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Content to record"
+                },
+                "metadata": {
+                    "type": "object",
+                    "required": false,
+                    "description": "Optional metadata"
+                }
+            }
+        },
+        "sys.info": {
+            "category": "system",
+            "actuator": "pure",
+            "description": "Get system info",
+            "schema": {}
+        },
+        "sys.processes": {
+            "category": "system",
+            "actuator": "pure",
+            "description": "List processes",
+            "schema": {
+                "limit": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 20,
+                    "description": "Max processes"
+                }
+            }
+        },
+        "sys.disk_usage": {
+            "category": "system",
+            "actuator": "pure",
+            "description": "Get disk usage",
+            "schema": {
+                "directory": {
+                    "type": "string",
+                    "required": false,
+                    "default": "/",
+                    "description": "Directory path"
+                }
+            }
+        },
+        "dev.repo_overview": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Analyze repo structure",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": false,
+                    "default": ".",
+                    "description": "Repo path"
+                }
+            }
+        },
+        "dev.search_code": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Search code",
+            "schema": {
+                "pattern": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Search pattern"
+                },
+                "path": {
+                    "type": "string",
+                    "required": false,
+                    "default": ".",
+                    "description": "Search path"
+                }
+            }
+        },
+        "dev.run_tests": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Run tests",
+            "schema": {
+                "test_path": {
+                    "type": "string",
+                    "required": false,
+                    "description": "Path to tests"
+                }
+            }
+        },
+        "dev.git_status": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Get git status",
+            "schema": {}
+        },
+        "dev.git_diff": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Get git diff",
+            "schema": {}
+        },
+        "dev.find_entrypoints": {
+            "category": "development",
+            "actuator": "skills",
+            "description": "Find entrypoints",
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": false,
+                    "default": ".",
+                    "description": "Search path"
+                }
+            }
+        },
+        "ml.load_dataset": {
+            "category": "machine_learning",
+            "actuator": "ml_tools",
+            "description": "Load dataset",
+            "schema": {
+                "dataset_name": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Dataset name"
+                }
+            }
+        },
+        "ml.train_classifier": {
+            "category": "machine_learning",
+            "actuator": "ml_tools",
+            "description": "Train classifier",
+            "schema": {
+                "dataset": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Dataset name"
+                },
+                "config": {
+                    "type": "object",
+                    "required": false,
+                    "description": "Training config"
+                }
+            }
+        },
+        "ml.search_datasets": {
+            "category": "machine_learning",
+            "actuator": "ml_tools",
+            "description": "Search datasets",
+            "schema": {
+                "query": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Search query"
+                }
+            }
+        },
+        "util.noop": {
+            "category": "utility",
+            "actuator": "pure",
+            "description": "No operation",
+            "schema": {}
+        },
+        "util.finish": {
+            "category": "utility",
+            "actuator": "pure",
+            "description": "Finish task",
+            "schema": {
+                "result": {
+                    "type": "string",
+                    "required": false,
+                    "description": "Final result"
+                }
+            }
+        }
+    },
+    "dataset_rules": {
+        "every_sample_must": [
+            "use_tool_from_this_registry",
+            "match_schema_100_percent"
+        ],
+        "violation_consequence": "corrupts_training"
+    }
+}

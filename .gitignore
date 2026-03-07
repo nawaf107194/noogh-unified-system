@@ -1,0 +1,65 @@
+# Build artifacts
+pytorch/
+pytorch_build_env/
+pytorch-build-blackwell-sm120/
+
+# Virtual environments
+venv/
+*/venv/
+.venv/
+.noogh_venv/
+
+# Large binaries
+*.deb
+*.run
+*.whl
+*.tar.gz
+*.tar.bz2
+*.zip
+*.bin
+*.pt
+*.safetensors
+*.sqlite3
+*.pack
+*.jsonl
+
+# Model caches
+noug-neural-os/models/
+models/
+.cache/
+__pycache__/
+*.pyc
+
+# Large Folders
+training/
+training_data/
+noogh_qwen7b_lora/
+system-prompts-and-models-of-ai-tools-main/
+node_modules/
+noogh-console/node_modules/
+ziHJUBIS/
+
+# Runtime data
+.data/
+.noogh_memory/
+.noogh_audit/
+.test_audit/
+logs/
+data/
+*.log
+*.pid
+*.port
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Pytest
+.pytest_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+config/secrets/

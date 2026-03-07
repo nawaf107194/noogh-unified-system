@@ -1,0 +1,4 @@
+Command '…src' not found, did you mean:
+  command 'src' from deb simple-revision-control (1.29-1)
+  command 'lsrc' from deb rcm (1.3.4-1)
+Try: sudo apt install <deb name>

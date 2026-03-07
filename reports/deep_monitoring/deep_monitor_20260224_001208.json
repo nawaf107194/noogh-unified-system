@@ -1,0 +1,907 @@
+{
+  "timestamp": "2026-02-24T00:12:06.229135",
+  "system": {
+    "cpu": {
+      "total_cores": 20,
+      "logical_cores": 28,
+      "current_freq_mhz": 2409.55,
+      "min_freq_mhz": 800.0,
+      "max_freq_mhz": 4842.86,
+      "overall_percent": 0.1,
+      "per_core_percent": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        5.1,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "load_average": [
+        0.03,
+        0.45,
+        0.78
+      ],
+      "context_switches": 10125767491,
+      "interrupts": 4216759130
+    },
+    "memory": {
+      "virtual": {
+        "total_gb": 31.18,
+        "available_gb": 19.61,
+        "used_gb": 11.57,
+        "free_gb": 5.69,
+        "percent": 37.1,
+        "cached_gb": 13.92,
+        "buffers_gb": 0.71
+      },
+      "swap": {
+        "total_gb": 0.0,
+        "used_gb": 0.0,
+        "free_gb": 0.0,
+        "percent": 0.0
+      }
+    },
+    "disk": {
+      "root": {
+        "total_gb": 914.78,
+        "used_gb": 413.98,
+        "free_gb": 454.27,
+        "percent": 47.7
+      },
+      "io_counters": {
+        "read_mb": 1565087.15,
+        "write_mb": 2624701.6,
+        "read_count": 58741156,
+        "write_count": 74572766
+      },
+      "partitions": [
+        {
+          "device": "/dev/nvme0n1p2",
+          "mountpoint": "/",
+          "fstype": "ext4",
+          "total_gb": 914.78,
+          "used_gb": 413.98,
+          "free_gb": 454.27,
+          "percent": 47.7
+        },
+        {
+          "device": "/dev/loop1",
+          "mountpoint": "/snap/bare/5",
+          "fstype": "squashfs",
+          "total_gb": 0.0,
+          "used_gb": 0.0,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop0",
+          "mountpoint": "/snap/aria2c/9",
+          "fstype": "squashfs",
+          "total_gb": 0.04,
+          "used_gb": 0.04,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop4",
+          "mountpoint": "/snap/core18/2976",
+          "fstype": "squashfs",
+          "total_gb": 0.05,
+          "used_gb": 0.05,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop5",
+          "mountpoint": "/snap/core18/2979",
+          "fstype": "squashfs",
+          "total_gb": 0.05,
+          "used_gb": 0.05,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop7",
+          "mountpoint": "/snap/core22/2216",
+          "fstype": "squashfs",
+          "total_gb": 0.07,
+          "used_gb": 0.07,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop8",
+          "mountpoint": "/snap/core20/2686",
+          "fstype": "squashfs",
+          "total_gb": 0.06,
+          "used_gb": 0.06,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop9",
+          "mountpoint": "/snap/core22/2292",
+          "fstype": "squashfs",
+          "total_gb": 0.07,
+          "used_gb": 0.07,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop11",
+          "mountpoint": "/snap/firefox/7766",
+          "fstype": "squashfs",
+          "total_gb": 0.25,
+          "used_gb": 0.25,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop13",
+          "mountpoint": "/snap/firmware-updater/210",
+          "fstype": "squashfs",
+          "total_gb": 0.02,
+          "used_gb": 0.02,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop12",
+          "mountpoint": "/snap/firmware-updater/167",
+          "fstype": "squashfs",
+          "total_gb": 0.01,
+          "used_gb": 0.01,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop17",
+          "mountpoint": "/snap/snap-store/1270",
+          "fstype": "squashfs",
+          "total_gb": 0.01,
+          "used_gb": 0.01,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop14",
+          "mountpoint": "/snap/gnome-42-2204/226",
+          "fstype": "squashfs",
+          "total_gb": 0.5,
+          "used_gb": 0.5,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop16",
+          "mountpoint": "/snap/gtk-common-themes/1535",
+          "fstype": "squashfs",
+          "total_gb": 0.09,
+          "used_gb": 0.09,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop15",
+          "mountpoint": "/snap/gnome-42-2204/247",
+          "fstype": "squashfs",
+          "total_gb": 0.52,
+          "used_gb": 0.52,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop18",
+          "mountpoint": "/snap/snapd/25577",
+          "fstype": "squashfs",
+          "total_gb": 0.05,
+          "used_gb": 0.05,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop19",
+          "mountpoint": "/snap/snapd/25935",
+          "fstype": "squashfs",
+          "total_gb": 0.05,
+          "used_gb": 0.05,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop20",
+          "mountpoint": "/snap/snapd-desktop-integration/315",
+          "fstype": "squashfs",
+          "total_gb": 0.0,
+          "used_gb": 0.0,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop21",
+          "mountpoint": "/snap/snapd-desktop-integration/343",
+          "fstype": "squashfs",
+          "total_gb": 0.0,
+          "used_gb": 0.0,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop22",
+          "mountpoint": "/snap/vlc/3777",
+          "fstype": "squashfs",
+          "total_gb": 0.31,
+          "used_gb": 0.31,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/nvme0n1p1",
+          "mountpoint": "/boot/efi",
+          "fstype": "vfat",
+          "total_gb": 1.05,
+          "used_gb": 0.01,
+          "free_gb": 1.04,
+          "percent": 0.6
+        },
+        {
+          "device": "/dev/sdb2",
+          "mountpoint": "/media/noogh/NOOGH_BACKUP",
+          "fstype": "ext4",
+          "total_gb": 915.8,
+          "used_gb": 535.32,
+          "free_gb": 333.89,
+          "percent": 61.6
+        },
+        {
+          "device": "/dev/sdc2",
+          "mountpoint": "/media/noogh/TOSHIBA EXT",
+          "fstype": "exfat",
+          "total_gb": 3725.88,
+          "used_gb": 3725.88,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop2",
+          "mountpoint": "/snap/code/224",
+          "fstype": "squashfs",
+          "total_gb": 0.33,
+          "used_gb": 0.33,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop3",
+          "mountpoint": "/snap/firefox/7836",
+          "fstype": "squashfs",
+          "total_gb": 0.25,
+          "used_gb": 0.25,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop10",
+          "mountpoint": "/snap/code/225",
+          "fstype": "squashfs",
+          "total_gb": 0.33,
+          "used_gb": 0.33,
+          "free_gb": 0.0,
+          "percent": 100.0
+        },
+        {
+          "device": "/dev/loop23",
+          "mountpoint": "/snap/core20/2717",
+          "fstype": "squashfs",
+          "total_gb": 0.06,
+          "used_gb": 0.06,
+          "free_gb": 0.0,
+          "percent": 100.0
+        }
+      ]
+    },
+    "network": {
+      "io_counters": {
+        "bytes_sent_mb": 193792.7,
+        "bytes_recv_mb": 364987.49,
+        "packets_sent": 109068576,
+        "packets_recv": 209564584,
+        "errin": 0,
+        "errout": 0,
+        "dropin": 0,
+        "dropout": 24474
+      },
+      "connections": {
+        "total": 80,
+        "by_status": {
+          "LISTEN": 23,
+          "TIME_WAIT": 11,
+          "ESTABLISHED": 30,
+          "NONE": 11,
+          "CLOSE_WAIT": 5
+        }
+      }
+    }
+  },
+  "processes": [
+    {
+      "pid": 473151,
+      "name": "language_server_linux_x64",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/extensions/antigravity/bin/language_server_linux_x64 --enable_lsp ",
+      "memory_mb": 3788.15,
+      "memory_percent": 11.87,
+      "cpu_percent": 0.0,
+      "num_threads": 18,
+      "uptime_hours": 1.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 657757,
+      "name": "python3",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python3 -m unified_core.agent_daemon",
+      "memory_mb": 923.58,
+      "memory_percent": 2.89,
+      "cpu_percent": 0.0,
+      "num_threads": 42,
+      "uptime_hours": 21.68,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2638669,
+      "name": "python3",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python3 /home/noogh/projects/noogh_unified_system/src/neural_engine/api/main.py",
+      "memory_mb": 824.75,
+      "memory_percent": 2.58,
+      "cpu_percent": 0.0,
+      "num_threads": 86,
+      "uptime_hours": 70.47,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2637652,
+      "name": "uvicorn",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python /home/noogh/projects/noogh_unified_system/src/.venv/bin/uvicorn gateway.app.main:app --",
+      "memory_mb": 799.73,
+      "memory_percent": 2.5,
+      "cpu_percent": 0.0,
+      "num_threads": 70,
+      "uptime_hours": 70.49,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2637561,
+      "name": "python3",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python3 -m neural_engine.autonomic_system.task_worker",
+      "memory_mb": 646.09,
+      "memory_percent": 2.02,
+      "cpu_percent": 0.0,
+      "num_threads": 117,
+      "uptime_hours": 70.5,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499719,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node --dns-result-order=ipv4first /home/noogh/.vscode-se",
+      "memory_mb": 598.36,
+      "memory_percent": 1.87,
+      "cpu_percent": 0.0,
+      "num_threads": 14,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 472986,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node --dns-result-order=ipv4first /home/noogh/.antigravity-server/",
+      "memory_mb": 369.35,
+      "memory_percent": 1.16,
+      "cpu_percent": 0.0,
+      "num_threads": 13,
+      "uptime_hours": 1.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 473283,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466",
+      "memory_mb": 169.05,
+      "memory_percent": 0.53,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 1.02,
+      "status": "sleeping"
+    },
+    {
+      "pid": 473001,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466",
+      "memory_mb": 150.42,
+      "memory_percent": 0.47,
+      "cpu_percent": 0.0,
+      "num_threads": 13,
+      "uptime_hours": 1.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499690,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/cli/servers/Stable-cb193",
+      "memory_mb": 142.44,
+      "memory_percent": 0.45,
+      "cpu_percent": 0.0,
+      "num_threads": 11,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 472725,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466",
+      "memory_mb": 138.57,
+      "memory_percent": 0.43,
+      "cpu_percent": 0.0,
+      "num_threads": 11,
+      "uptime_hours": 1.05,
+      "status": "sleeping"
+    },
+    {
+      "pid": 473028,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466",
+      "memory_mb": 97.12,
+      "memory_percent": 0.3,
+      "cpu_percent": 0.0,
+      "num_threads": 12,
+      "uptime_hours": 1.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499741,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/cli/servers/Stable-cb193",
+      "memory_mb": 69.29,
+      "memory_percent": 0.22,
+      "cpu_percent": 0.0,
+      "num_threads": 11,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 513722,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/cli/servers/Stable-cb193",
+      "memory_mb": 59.33,
+      "memory_percent": 0.19,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 0.77,
+      "status": "sleeping"
+    },
+    {
+      "pid": 473290,
+      "name": "node",
+      "cmdline": "/home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/node /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466",
+      "memory_mb": 57.2,
+      "memory_percent": 0.18,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 1.02,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499778,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/cli/servers/Stable-cb193",
+      "memory_mb": 57.07,
+      "memory_percent": 0.18,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 513732,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/extensions/ms-azuretools",
+      "memory_mb": 55.87,
+      "memory_percent": 0.18,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 0.77,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2329789,
+      "name": "node",
+      "cmdline": "node /home/noogh/projects/noogh_unified_system/src/noogh-console/node_modules/.bin/vite",
+      "memory_mb": 55.35,
+      "memory_percent": 0.17,
+      "cpu_percent": 0.0,
+      "num_threads": 11,
+      "uptime_hours": 120.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 513731,
+      "name": "node",
+      "cmdline": "/home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/node /home/noogh/.vscode-server/extensions/ms-azuretools",
+      "memory_mb": 51.59,
+      "memory_percent": 0.16,
+      "cpu_percent": 0.0,
+      "num_threads": 7,
+      "uptime_hours": 0.77,
+      "status": "sleeping"
+    },
+    {
+      "pid": 72566,
+      "name": "python3",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python3 /home/noogh/projects/noogh_unified_system/src/agents/autonomous_learner_agent.py --int",
+      "memory_mb": 29.68,
+      "memory_percent": 0.09,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 3.15,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499625,
+      "name": "code-cb1933bbc38d329b3595673a600fab5c7368f0a7",
+      "cmdline": "/home/noogh/.vscode-server/code-cb1933bbc38d329b3595673a600fab5c7368f0a7 command-shell --cli-data-dir /home/noogh/.vscode-server/cli --parent-process-",
+      "memory_mb": 17.94,
+      "memory_percent": 0.06,
+      "cpu_percent": 0.0,
+      "num_threads": 29,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 91376,
+      "name": "python3",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/.venv/bin/python3 /home/noogh/projects/noogh_unified_system/src/agents/server_control_agent.py --interva",
+      "memory_mb": 17.6,
+      "memory_percent": 0.06,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 3.02,
+      "status": "sleeping"
+    },
+    {
+      "pid": 1719,
+      "name": "redis-server",
+      "cmdline": "/usr/bin/redis-server 127.0.0.1:6379                                           ",
+      "memory_mb": 12.99,
+      "memory_percent": 0.04,
+      "cpu_percent": 0.0,
+      "num_threads": 5,
+      "uptime_hours": 291.25,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499569,
+      "name": "sshd",
+      "cmdline": "sshd: noogh [priv]  ",
+      "memory_mb": 10.45,
+      "memory_percent": 0.03,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499606,
+      "name": "sshd",
+      "cmdline": "sshd: noogh@notty   ",
+      "memory_mb": 7.49,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2329800,
+      "name": "esbuild",
+      "cmdline": "/home/noogh/projects/noogh_unified_system/src/noogh-console/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.25.12 --ping",
+      "memory_mb": 6.84,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 24,
+      "uptime_hours": 120.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2668321,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.79,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 15.72,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2792450,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.78,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 15.01,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2627744,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.76,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 15.93,
+      "status": "sleeping"
+    },
+    {
+      "pid": 2780276,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.76,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 15.05,
+      "status": "sleeping"
+    },
+    {
+      "pid": 4186842,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.75,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 3.69,
+      "status": "sleeping"
+    },
+    {
+      "pid": 4186909,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.73,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 3.68,
+      "status": "sleeping"
+    },
+    {
+      "pid": 473130,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.72,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 1.03,
+      "status": "sleeping"
+    },
+    {
+      "pid": 4186844,
+      "name": "bash",
+      "cmdline": "/bin/bash --init-file /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/out/vs/workbench/contrib/terminal/common/scr",
+      "memory_mb": 5.71,
+      "memory_percent": 0.02,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 3.69,
+      "status": "sleeping"
+    },
+    {
+      "pid": 1349,
+      "name": "avahi-daemon",
+      "cmdline": "avahi-daemon: running [noogh-B760M-E.local]",
+      "memory_mb": 4.17,
+      "memory_percent": 0.01,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 291.25,
+      "status": "sleeping"
+    },
+    {
+      "pid": 602263,
+      "name": "bash",
+      "cmdline": "/bin/bash -c -l source /home/noogh/.claude/shell-snapshots/snapshot-bash-1771878321798-44f50f.sh && shopt -u extglob 2>/dev/null || true && eval 'chmo",
+      "memory_mb": 3.89,
+      "memory_percent": 0.01,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 0.0,
+      "status": "sleeping"
+    },
+    {
+      "pid": 472713,
+      "name": "sh",
+      "cmdline": "sh /home/noogh/.antigravity-server/bin/1.18.3-c9b91c281ca4919466bd32a6ea2fcdab11102259/bin/antigravity-server --start-server --host=127.0.0.1 --port=0",
+      "memory_mb": 1.85,
+      "memory_percent": 0.01,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 1.05,
+      "status": "sleeping"
+    },
+    {
+      "pid": 499686,
+      "name": "sh",
+      "cmdline": "sh /home/noogh/.vscode-server/cli/servers/Stable-cb1933bbc38d329b3595673a600fab5c7368f0a7/server/bin/code-server --connection-token=remotessh --accept",
+      "memory_mb": 1.85,
+      "memory_percent": 0.01,
+      "cpu_percent": 0.0,
+      "num_threads": 1,
+      "uptime_hours": 0.88,
+      "status": "sleeping"
+    }
+  ],
+  "services": {
+    "redis": {
+      "port": 6379,
+      "status": true,
+      "response_time_ms": 0.17
+    },
+    "gateway": {
+      "port": 8001,
+      "status": true,
+      "response_time_ms": 0.02
+    },
+    "neural_engine": {
+      "port": 8002,
+      "status": true,
+      "response_time_ms": 0.02
+    },
+    "ollama": {
+      "port": 11434,
+      "status": true,
+      "response_time_ms": 0.02
+    }
+  },
+  "network": {},
+  "disk_io": {},
+  "database": {
+    "sqlite": {
+      "status": true,
+      "size_mb": 0.05,
+      "path": "/home/noogh/projects/noogh_unified_system/src/data/trajectories.db"
+    },
+    "chroma": {
+      "status": true,
+      "size_mb": 448.57,
+      "path": "/home/noogh/projects/noogh_unified_system/src/data/chroma"
+    }
+  },
+  "logs": {
+    "total_log_files": 28,
+    "total_size_mb": 873.05,
+    "recent_errors": [
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:46,006 | ERROR | unified_core.neural_core.enhanced_model | ❌ Failed to load QWEN_7B locally: Some modules are dispatched on the CPU or the disk. Make sure you have enough GPU RAM to f"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:46,028 | WARNING | unified_core.core.spatial_specialist | Skipping inaccessible entry volumes: [Errno 5] Input/output error: '/home/noogh/projects/noogh_unified_system/volumes'"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:46,737 | ERROR | unified_core.neural_core.enhanced_model | ❌ Inference failed: No local models loaded and remote engine unavailable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:46,737 | ERROR | unified_core.neural_integration | ❌ Integrated reasoning failed: 'NoneType' object is not subscriptable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:12:03,403 | ERROR | unified_core.neural_core.enhanced_model | ❌ Inference failed: No local models loaded and remote engine unavailable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:12:03,406 | ERROR | unified_core.neural_integration | ❌ Integrated reasoning failed: 'NoneType' object is not subscriptable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:12:26,781 | ERROR | unified_core.neural_core.enhanced_model | ❌ Inference failed: No local models loaded and remote engine unavailable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:12:26,781 | ERROR | unified_core.neural_integration | ❌ Integrated reasoning failed: 'NoneType' object is not subscriptable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:13:05,715 | ERROR | unified_core.neural_core.enhanced_model | ❌ Inference failed: No local models loaded and remote engine unavailable"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:13:05,718 | ERROR | unified_core.neural_integration | ❌ Integrated reasoning failed: 'NoneType' object is not subscriptable"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:15:54,468\", \"level\": \"ERROR\", \"logger\": \"react_loop\", \"message\": \"SafeMath Error: invalid syntax (<unknown>, line 1) | Original: \\u0623\\u0646\\u062a \\u0645\\u0639\\u0645\\u062"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:16:49,111\", \"level\": \"ERROR\", \"logger\": \"react_loop\", \"message\": \"SafeMath Error: invalid syntax (<unknown>, line 1) | Original: \\u0623\\u0646\\u062a \\u0645\\u0639\\u0645\\u062"
+      }
+    ],
+    "recent_warnings": [
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:30,730 | WARNING | unified_core.neural_bridge | Neural Engine health check failed: Cannot connect to unix socket /tmp/noogh_neural.sock ssl:default [No such file or directory]"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:32,127 | WARNING | torchao | Skipping import of cpp extensions due to incompatible torch version 2.10.0+cu128 for torchao version 0.15.0             Please see https://github.com/pyto"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "/home/noogh/projects/noogh_unified_system/src/.venv/lib/python3.12/site-packages/accelerate/utils/modeling.py:1566: UserWarning: Current model requires 64 bytes of buffer for offloaded layers, which s"
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "warnings.warn("
+      },
+      {
+        "file": "agent_daemon_tcp.log",
+        "message": "2026-02-06 20:10:46,486 | WARNING | unified_core.core.meta_governor | [meta_governor_aleph] STEP 1: Soft Brake (-15% aggression). Reason: Predictive instability (F_t=0.20, G_t=0.20)"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 10:57:27,803\", \"level\": \"WARNING\", \"logger\": \"neural_engine.api.security\", \"message\": \"\\u26a0\\ufe0f [verify_internal_token] Token mismatch! Received: '107194', Expected lengt"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:05:28,962\", \"level\": \"WARNING\", \"logger\": \"neural_engine.api.security\", \"message\": \"\\u26a0\\ufe0f [verify_internal_token] Token mismatch! Received: 'wrong', Expected length"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:09:20,301\", \"level\": \"WARNING\", \"logger\": \"neural_engine.api.security\", \"message\": \"\\u26a0\\ufe0f [verify_internal_token] Token mismatch! Received: 'TRiggerMismatch123', Ex"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:14:38,622\", \"level\": \"WARNING\", \"logger\": \"neural_engine.api.security\", \"message\": \"\\u26a0\\ufe0f [verify_internal_token] Token mismatch! Received: 'wrongtoken', Expected l"
+      },
+      {
+        "file": "neural_engine_restart.log",
+        "message": "{\"timestamp\": \"2026-02-07 11:17:55,430\", \"level\": \"WARNING\", \"logger\": \"unified_core.tool_registry\", \"message\": \"\\ud83d\\udee1\\ufe0f HITL Intercept: Tool [sys.execute] requires manual approval.\", \"modu"
+      }
+    ]
+  },
+  "alerts": [
+    {
+      "level": "info",
+      "component": "Process",
+      "message": "العملية language_server_linux_x64 (PID 473151) تستخدم 11.87% من الذاكرة"
+    }
+  ]
+}

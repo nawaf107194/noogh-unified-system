@@ -1,0 +1,228 @@
+{
+    "_meta": {
+        "version": "1.0.0",
+        "created": "2026-01-13",
+        "status": "CANONICAL",
+        "description": "NOOGH Global Tool Mapping Spec - Single Source of Truth"
+    },
+    "principles": {
+        "model_cannot_invent_tools": true,
+        "model_cannot_decide_permissions": true,
+        "no_smart_fallback": true,
+        "every_tool_has_actuator_or_pure": true,
+        "strict_schema_required": true,
+        "mismatch_causes_failure_and_scar": true
+    },
+    "output_contract": {
+        "format": {
+            "tool_name": "<one_of_registry>",
+            "arguments": {}
+        },
+        "forbidden": [
+            "free_text",
+            "explanations",
+            "chain_of_thought",
+            "multiple_tools_unless_benchmark_allows"
+        ]
+    },
+    "tools": {
+        "filesystem.write": {
+            "category": "filesystem",
+            "actuator": "FilesystemActuator.write_file",
+            "allow_paths": [
+                "/home/noogh/projects/noogh_unified_system/src/data/",
+                "/home/noogh/projects/noogh_unified_system/src/unified_core/core/.data/",
+                "/tmp/noogh_safe/"
+            ],
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true
+                },
+                "content": {
+                    "type": "string",
+                    "required": true
+                }
+            },
+            "on_violation": "BLOCK_AND_SCAR"
+        },
+        "filesystem.read": {
+            "category": "filesystem",
+            "implementation": "Path.read_text",
+            "pure": true,
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true
+                }
+            }
+        },
+        "filesystem.exists": {
+            "category": "filesystem",
+            "implementation": "Path.exists",
+            "pure": true,
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true
+                }
+            }
+        },
+        "filesystem.delete": {
+            "category": "filesystem",
+            "actuator": "FilesystemActuator.delete_file",
+            "allow_paths": [
+                "/home/noogh/projects/noogh_unified_system/src/data/",
+                "/home/noogh/projects/noogh_unified_system/src/unified_core/core/.data/",
+                "/tmp/noogh_safe/"
+            ],
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true
+                }
+            },
+            "on_violation": "BLOCK_AND_HEAVY_SCAR"
+        },
+        "filesystem.list": {
+            "category": "filesystem",
+            "implementation": "Path.iterdir",
+            "pure": true,
+            "schema": {
+                "path": {
+                    "type": "string",
+                    "required": true
+                }
+            }
+        },
+        "http.get": {
+            "category": "network",
+            "actuator": "NetworkActuator.http_request",
+            "allow_urls": [
+                "http://localhost",
+                "http://127.0.0.1"
+            ],
+            "schema": {
+                "url": {
+                    "type": "string",
+                    "required": true
+                },
+                "headers": {
+                    "type": "object",
+                    "required": false
+                }
+            },
+            "on_violation": "BLOCK_AND_SCAR"
+        },
+        "http.post": {
+            "category": "network",
+            "actuator": "NetworkActuator.http_request",
+            "allow_urls": [
+                "http://localhost",
+                "http://127.0.0.1"
+            ],
+            "schema": {
+                "url": {
+                    "type": "string",
+                    "required": true
+                },
+                "json": {
+                    "type": "object",
+                    "required": false
+                }
+            },
+            "on_violation": "BLOCK_AND_SCAR"
+        },
+        "calculator.add": {
+            "category": "math",
+            "implementation": "lambda a,b: a+b",
+            "pure": true,
+            "schema": {
+                "a": {
+                    "type": "number",
+                    "required": true
+                },
+                "b": {
+                    "type": "number",
+                    "required": true
+                }
+            }
+        },
+        "calculator.multiply": {
+            "category": "math",
+            "implementation": "lambda a,b: a*b",
+            "pure": true,
+            "schema": {
+                "a": {
+                    "type": "number",
+                    "required": true
+                },
+                "b": {
+                    "type": "number",
+                    "required": true
+                }
+            }
+        },
+        "calculator.compute": {
+            "category": "math",
+            "implementation": "safe_eval",
+            "pure": true,
+            "schema": {
+                "expression": {
+                    "type": "string",
+                    "required": true,
+                    "constraint": "safe_math_only"
+                }
+            }
+        },
+        "process.run": {
+            "category": "process",
+            "actuator": "ProcessActuator.spawn",
+            "allowlist": [],
+            "default_behavior": "BLOCKED",
+            "purpose": "intentional_benchmark_failure_only",
+            "schema": {
+                "command": {
+                    "type": "string",
+                    "required": true
+                },
+                "args": {
+                    "type": "array",
+                    "required": false
+                }
+            },
+            "on_violation": "BLOCK_AND_CRITICAL_SCAR"
+        },
+        "noop": {
+            "category": "control",
+            "implementation": "lambda: None",
+            "pure": true,
+            "schema": {},
+            "meaning": "no_safe_action_possible"
+        },
+        "finish": {
+            "category": "control",
+            "implementation": "task_completion_signal",
+            "pure": true,
+            "schema": {
+                "result": {
+                    "type": "string",
+                    "required": false
+                }
+            }
+        }
+    },
+    "dataset_rules": {
+        "every_sample_must": [
+            "use_tool_from_this_registry",
+            "match_schema_100_percent",
+            "use_path_within_allowlist_or_intentional_failure"
+        ],
+        "violation_consequence": "corrupts_training"
+    },
+    "generated_from_this_spec": [
+        "unified_core/benchmarks/tool_policy.py",
+        "unified_core/tool_registry.py",
+        "training_datasets/*"
+    ]
+}

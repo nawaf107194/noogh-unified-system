@@ -1,0 +1,16 @@
+[Unit]
+Description=NOOGH Layer C Evolution Loop
+After=network.target
+
+[Service]
+Type=oneshot
+User=noogh
+WorkingDirectory=/home/noogh/projects/noogh_unified_system
+ExecStart=/usr/bin/python3 src/run_evolution_loop.py
+StandardOutput=append:/home/noogh/projects/noogh_unified_system/src/logs/evo.log
+StandardError=append:/home/noogh/projects/noogh_unified_system/src/logs/evo_error.log
+Environment="RUNPOD_BASE_URL=" # Update this when ready
+Environment="RUNPOD_API_KEY=" # Update this when ready
+
+[Install]
+WantedBy=multi-user.target

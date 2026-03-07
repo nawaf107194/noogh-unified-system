@@ -1,0 +1,41 @@
+--- gateway/app/api/routes.py
++++ gateway/app/api/routes.py
+@@ -112,14 +113,33 @@ async def health_check(request: Request):
+     try:
+         controller = get_controller(request)
+         kernel = get_kernel(request)
+ 
+-        neural_status = "unknown"
+-        if kernel and kernel.neural_client:
+-            res = await kernel.neural_client.health_check()
+-            neural_status = "healthy" if res.success else "error"
++        neural_status = "unknown"
++
++        # Direct HTTP check to Neural Engine (decoupled mode)
++        try:
++            neural_url = os.getenv("NEURAL_ENGINE_URL", "http://127.0.0.1:8002")
++            async with AsyncClient(timeout=5.0) as client:
++                resp = await client.get(f"{neural_url}/health")
++
++                if resp.status_code == 200:
++                    data = resp.json()
++                    status = data.get("status")
++
++                    if status == "healthy":
++                        neural_status = "ok"
++                    elif status in ("initializing", "loading"):
++                        neural_status = "starting"
++                    else:
++                        neural_status = "error"
++                else:
++                    neural_status = "error"
++
++        except Exception:
++            neural_status = "error"
+ 
+         return {
+             "status": "ok",
+-            "agent_ready": controller is not None,
++            "agent_ready": controller is not None,
+             "neural_engine": neural_status,
+         }

@@ -1,0 +1,6 @@
+# NOOGH MCP Server Dependencies
+
+fastmcp>=0.2.0
+uvicorn>=0.27.0
+chromadb>=0.4.0
+pydantic>=2.0.0

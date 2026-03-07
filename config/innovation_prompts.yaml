@@ -1,0 +1,307 @@
+# ═══════════════════════════════════════════════════════════════
+# Innovation Prompts — Self-Evolvable Configuration
+# Version: 1.0.0
+# 
+# هذا الملف يحتوي على كل prompts التطور.
+# النظام يقدر يعدّله من خلال evolution pipeline (config scope)
+# كل تعديل يمر canary test عشان ما يكسر شيء.
+# ═══════════════════════════════════════════════════════════════
+
+missing_feature: |
+  You are improving an autonomous Artificial Intelligence system (NOOGH). Suggest ONE new feature to add to the system architecture.
+  
+  CURRENT SYSTEM CAPABILITIES:
+  {capabilities}
+  
+  RECENT SYSTEM CHANGES:
+  {recent_changes}
+  
+  ALREADY IMPLEMENTED (DO NOT REPEAT):
+  {already_implemented}
+  
+  The system currently has core elements like:
+  - Neural Engine: LLM inference (vLLM, RunPod, local Ollama)
+  - Evolution Pipeline: Generates, tests, and promotes new code (InnovationEngine)
+  - Memory: SQLite-based MemoryStore, JSON-based Instincts, Cognitive Journal
+  - Gateway: FastAPI endpoints for interaction
+  - Data Routing: Postgres/VectorDB routing
+  
+  Think about NEXT LEVEL improvements NOT yet implemented:
+  - Autonomous System Administrator (self-healing infra, auto-restart)
+  - Advanced Memory Summarization (compressing old episodic memories)
+  - Resource governor (throttling brain calls when GPU/CPU is saturated)
+  - Goal synthesis (agent generating its own long-term objectives based on environment)
+  - Security Intrusion Detection (analyzing logs to block suspicious IPs)
+  - Multi-agent collaboration (spawning sub-agents for parallel tasks)
+  - Code Quality Linter (automatically fixing PEP8 or typing issues)
+  - Emotional/State tracking (agent modifying behavior based on recent failure/success streaks)
+  
+  CRITICAL: Create the new feature as a NEW FILE in: unified_core/intelligence/ (for thought/reasoning features) OR unified_core/system/ (for infra features).
+  
+  CRITICAL ARCHITECTURE RULES:
+  1. DO NOT use mock data. If data is needed, connect to real DB tools (e.g. DataRouter) or fetch real data.
+  2. NEVER put execution code at the module level. If writing examples/tests, MUST wrap them in `if __name__ == '__main__':`
+  3. DO NOT reinvent the wheel. Use existing system interfaces.
+  
+  OUTPUT FORMAT:
+  ```json
+  {{
+      "title": "Feature name",
+      "description": "What it does and why it improves trading",
+      "target_file": "unified_core/intelligence/new_feature.py",
+      "rationale": "How this reduces losses or increases win rate"
+  }}
+  ```
+  
+  Then provide the complete implementation:
+  ```python
+  # Your code here
+  ```
+
+bug_hunter: |
+  Review this Python function for potential bugs, edge cases, and security issues.
+  
+  FILE: {file_path}
+  FUNCTION: {function_name}
+  
+  ```python
+  {code}
+  ```
+  
+  Look for:
+  1. Unhandled exceptions that could crash the process
+  2. Race conditions in async code
+  3. Missing input validation
+  4. Resource leaks (unclosed files, sessions, connections)
+  5. Logic errors in edge cases
+  
+  If you find a real bug, provide:
+  ```json
+  {{
+      "title": "Bug: description",
+      "severity": "HIGH/MEDIUM/LOW",
+      "description": "Detailed explanation",
+      "fix_description": "How to fix it"
+  }}
+  ```
+  
+  Then provide the FIXED version of the SAME function. CRITICAL RULES:
+  - Keep the EXACT same function signature: `def {function_name}(...)`
+  - Do NOT wrap in a class, do NOT add imports or module-level code
+  - Only modify the function BODY to fix the bug
+  - Return ONLY the complete fixed function definition, nothing else
+  
+  ```python
+  def {function_name}(...):  # Same signature as original
+      # Fixed body here
+  ```
+  
+  If no real bugs found, respond with: NO_BUGS_FOUND
+
+test_generator: |
+  Generate a comprehensive unit test for this function.
+  
+  FILE: {file_path}
+  FUNCTION: {function_name}
+  
+  ```python
+  {code}
+  ```
+  
+  Generate tests that cover:
+  1. Happy path (normal inputs)
+  2. Edge cases (empty, None, boundaries)
+  3. Error cases (invalid inputs) ONLY IF the code explicitly raises them
+  4. Async behavior (if applicable)
+  
+  CRITICAL RULES FOR TESTS:
+  1. DO NOT assume the target system raises specific exceptions (like `ValueError` or `TypeError`) unless the code explicitly contains a `raise` statement or you're confident a standard library function will raise it. It's better to assert the result is None or False than to falsely assert a fake exception.
+  2. DO NOT rewrite or mock the target behavior internally. Import the real class/function and test its actual outputs.
+  3. NEVER put execution code at the module level outside tests.
+  
+  Use pytest style. Output ONLY the test code:
+  ```python
+  import pytest
+  # Your tests here
+  ```
+
+architecture_review: |
+  Review this module's architecture and suggest ONE structural improvement.
+  
+  MODULE: {module_name}
+  FILES:
+  {file_list}
+  
+  CURRENT PATTERNS:
+  {patterns}
+  
+  ALREADY IMPLEMENTED (DO NOT REPEAT):
+  {already_implemented}
+  
+  Consider:
+  - Is there duplicated logic that should be extracted?
+  - Are there circular dependencies?
+  - Could a design pattern (Factory, Observer, Strategy) simplify the code?
+  - What abstraction layer is missing?
+  - AVOID: error handlers, logging wrappers, health checks (already saturated)
+  
+  CRITICAL ARCHITECTURE RULES:
+  1. DO NOT use mock data. Connect to real DB tools (e.g. DataRouter) or real APIs.
+  2. NEVER put execution code at the module level. Tests/examples MUST be in `if __name__ == '__main__':`
+  3. BUILD on existing components, do not reinvent connections or clients.
+  
+  OUTPUT:
+  ```json
+  {{
+      "title": "Improvement name",
+      "description": "What to change and why",
+      "target_file": "which file to modify or create",
+      "pattern": "Which design pattern to apply"
+  }}
+  ```
+  
+  Then provide the implementation:
+  ```python
+  # Your code here
+  ```
+
+deep_refactor: |
+  You are an expert Python engineer and a core component of the NOOGH autonomous AI system.
+  Your task is to perform a DEEP REFACTOR on the provided existing Python file.
+  
+  Unlike other innovation types that create new files, this prompt is specifically for MODIFYING EXISTING code IN-PLACE to make it better, faster, or more robust.
+  
+  FILE: {file_path}
+  
+  CURRENT FILE CONTENT:
+  ```python
+  {file_content}
+  ```
+  
+  INSTRUCTIONS:
+  1. Carefully read the `CURRENT FILE CONTENT`.
+  2. Identify weak points such as:
+     - Missing explicit error handling (e.g., catching specific exceptions instead of bare `except:`).
+     - Inefficient loops, algorithms, or I/O operations.
+     - Hardcoded values that should be configurable or dynamic.
+     - Unsafe parsing or casting operations.
+     - Poor documentation or missing type hints.
+  3. Rewrite the code to fix these issues. Your refactored code should be a complete, drop-in replacement for the original file.
+  
+  CRITICAL RULES:
+  1. DO NOT change the core purpose or external API of the file, as other parts of the system rely on it.
+  2. Maintain all existing imports unless you are specifically removing unused ones.
+  3. Ensure your refactored code is syntactically valid Python.
+  4. Your output MUST be the FULL ENTIRE FILE rewritten, not just a snippet.
+  
+  OUTPUT FORMAT:
+  First, provide a JSON block with the metadata:
+  ```json
+  {{
+      "title": "Brief title of the refactor",
+      "description": "What was improved and why"
+  }}
+  ```
+  
+  Then, provide the FULL REFACTORED CODE in a python block:
+  ```python
+  # COMPLETE REWRITTEN FILE CONTENT HERE
+  ```
+
+
+reasoning_optimizer: |
+  You are improving the REASONING and DECISION-MAKING layer of an autonomous AI agent.
+  
+  TARGET FILES (reasoning/thinking layer):
+  {file_list}
+  
+  CURRENT CAPABILITIES:
+  - NeuralBridge: LLM communication and model selection
+  - WorldModel: Belief tracking and falsification
+  - Dreamer: Goal discovery and planning
+  - CognitiveTrace/Journal: Tracking the agent's thought history
+  - InnovationEngine: Code generation and self-improvement
+  
+  ALREADY IMPLEMENTED (DO NOT REPEAT):
+  {already_implemented}
+  
+  Suggest ONE improvement to the reasoning/thinking pipeline:
+  - Confidence calibration (reduce overconfident actions)
+  - Multi-hypothesis reasoning (consider multiple outcomes before deciding)
+  - Temporal reasoning (how does the system state evolve over time?)
+  - Causal reasoning (WHY did a task fail, instead of just THAT it failed)
+  - Meta-cognition (agent evaluates quality of its own reasoning before acting)
+  - Bayesian belief updates (update conviction with new evidence)
+  - Adversarial thinking (what could go wrong with this system change?)
+  
+  CRITICAL: Create the new improvement as a NEW FILE in: unified_core/intelligence/
+  
+  CRITICAL ARCHITECTURE RULES:
+  1. DO NOT use mock data. Connect to real DB tools (e.g. DataRouter) or real APIs.
+  2. NEVER put execution code at the module level. Tests/examples MUST be in `if __name__ == '__main__':`
+  3. BUILD on existing components, do not reinvent connections or clients.
+  
+  OUTPUT FORMAT:
+  ```json
+  {{
+      "title": "Reasoning improvement name",
+      "description": "What it does and how it improves decision quality",
+      "target_file": "unified_core/intelligence/new_reasoning_module.py",
+      "rationale": "How this reduces bad decisions or improves thinking"
+  }}
+  ```
+  
+  Then provide the complete implementation:
+  ```python
+  # Your code here
+  ```
+
+storage_improver: |
+  You are improving the DATA STORAGE and PERSISTENCE layer of an autonomous AI system.
+  
+  TARGET FILES (database/storage layer):
+  {file_list}
+  
+  CURRENT STORAGE CAPABILITIES:
+  - SQLite via MemoryStore (beliefs, predictions, observations)
+  - Evolution ledger (JSONL append-only log)
+  - Instincts (JSON file-based persistence)
+  - File-based code storage for innovations
+  
+  ALREADY IMPLEMENTED (DO NOT REPEAT):
+  {already_implemented}
+  
+  Suggest ONE improvement to the storage/database layer:
+  - Query optimizer for MemoryStore (index hot columns)
+  - Time-series storage for trade history (efficient candle storage)
+  - Snapshot/checkpoint system (save full system state periodically)
+  - Data compaction (archive old ledger entries, prune stale beliefs)
+  - Caching layer (LRU cache for frequent DB reads)
+  - Migration system (schema versioning for SQLite)
+  - Backup rotation (automatic daily backups with retention policy)
+  - Metrics persistence (store CPU/memory/trade stats over time)
+  - Knowledge graph storage (link innovations, beliefs, and outcomes)
+  
+  CRITICAL: Create the new improvement as a NEW FILE in: unified_core/db/
+  
+  CRITICAL ARCHITECTURE RULES:
+  1. DO NOT reinvent database connections (e.g. raw `sqlite3`). You MUST integrate with or build upon the existing `DataRouter` and `PostgresManager`/`VectorDBManager` interfaces in `unified_core/db/`.
+  2. NEVER put execution code at the module level. Ensure testing/examples are inside `if __name__ == '__main__':`
+  3. DO NOT use mock data. Use the actual data pipelines.
+  
+  OUTPUT FORMAT:
+  ```json
+  {{
+      "title": "Storage improvement name",
+      "description": "What it does and why it improves data management",
+      "target_file": "unified_core/db/new_storage_module.py",
+      "rationale": "How this improves reliability, performance, or data integrity"
+  }}
+  ```
+  
+  Then provide the complete implementation:
+  ```python
+  # Your code here
+  ```
+
+

@@ -1,0 +1,76 @@
+{
+  "neurons": [
+    {
+      "name": "short_filter",
+      "hash": "ac027561a89d",
+      "file": "short_filter_20260228_180930_ac027561a89d.py",
+      "fitness": 0.25389520845082986,
+      "created_utc": "2026-02-28T15:09:30Z",
+      "model": "noogh-teacher",
+      "prompt_hash": "8ab01a65719e",
+      "market": {
+        "dominant_side": "SHORT",
+        "volatility_regime": "LOW"
+      },
+      "pair_fitness": 0.25389520845082986,
+      "pair_hash": "b9fc4dfc35c2",
+      "fitness_updated_utc": "2026-02-28T15:09:30Z"
+    },
+    {
+      "name": "long_filter",
+      "hash": "b9fc4dfc35c2",
+      "file": "long_filter_20260228_180930_b9fc4dfc35c2.py",
+      "fitness": 0.0,
+      "created_utc": "2026-02-28T15:09:30Z",
+      "model": "noogh-teacher",
+      "prompt_hash": "8ab01a65719e",
+      "market": {
+        "dominant_side": "SHORT",
+        "volatility_regime": "LOW"
+      },
+      "pair_fitness": 0.25389520845082986,
+      "pair_hash": "ac027561a89d",
+      "fitness_updated_utc": "2026-02-28T15:09:30Z"
+    },
+    {
+      "name": "long_filter",
+      "hash": "e0f22b6baec6",
+      "file": "long_filter_20260302_043108_e0f22b6baec6.py",
+      "fitness": 0.0,
+      "created_utc": "2026-03-02T01:31:08Z",
+      "model": "qwen2.5:7b",
+      "prompt_hash": "5f1c395fe61f",
+      "market": {
+        "dominant_side": "SHORT",
+        "volatility_regime": "LOW"
+      },
+      "pair_fitness": 0.0,
+      "pair_hash": "4774035660ce",
+      "fitness_updated_utc": "2026-03-02T01:31:08Z"
+    },
+    {
+      "name": "short_filter",
+      "hash": "4774035660ce",
+      "file": "short_filter_20260302_043108_4774035660ce.py",
+      "fitness": 0.0,
+      "created_utc": "2026-03-02T01:31:08Z",
+      "model": "qwen2.5:7b",
+      "prompt_hash": "5f1c395fe61f",
+      "market": {
+        "dominant_side": "SHORT",
+        "volatility_regime": "LOW"
+      },
+      "pair_fitness": 0.0,
+      "pair_hash": "e0f22b6baec6",
+      "fitness_updated_utc": "2026-03-02T01:31:08Z"
+    }
+  ],
+  "elite_pair": {
+    "hashes": [
+      "b9fc4dfc35c2",
+      "ac027561a89d"
+    ],
+    "pair_fitness": 0.25389520845082986
+  },
+  "pruned_utc": "2026-03-02T01:31:32Z"
+}

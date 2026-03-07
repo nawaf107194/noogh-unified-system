@@ -1,0 +1,27 @@
+noogh/data
+logs
+venv
+.git
+.mypy_cache
+__pycache__
+*.pyc
+noug-neural-os/models
+.noogh_memory
+.noogh_audit
+
+# Heavy/Unused directories
+gateway/data
+system-prompts-and-models-of-ai-tools-main
+training_month_2025_01
+neural_api_debug
+*.deb
+pytorch-build-blackwell-sm120
+Thinking-Claude-main-extracted
+archive
+deploy
+tests
+.env
+# علامة التعجب (!) تعني: استثناء هذا الملف من التجاهل (أي اسمح بمروره)
+!torch-cu128-sm120-main/
+!torch-cu128-sm120-main/torch-cu128-sm120-main/
+!torch-cu128-sm120-main/torch-cu128-sm120-main/*.whl

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//home/noogh/.noogh/evolution/**)",
+      "Bash(cat:*)",
+      "Bash(/dev/null find /home/noogh/projects/noogh_unified_system/src/unified_core/intelligence -type f -name \"*.py\")",
+      "Bash(wc:*)",
+      "Read(//proc/2024459/**)",
+      "Bash(lsof:*)",
+      "Bash(awk:*)",
+      "Bash(journalctl:*)",
+      "Bash(pgrep:*)",
+      "Bash(systemctl:*)",
+      "Bash(sudo systemctl restart:*)",
+      "Read(//tmp/**)",
+      "Bash(tail:*)",
+      "Bash(kill:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

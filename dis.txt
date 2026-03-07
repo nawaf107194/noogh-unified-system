@@ -1,0 +1,1319 @@
+               0 MAKE_CELL               29 (_src_root)
+
+1294           2 RETURN_GENERATOR
+               4 POP_TOP
+               6 RESUME                   0
+
+1305           8 LOAD_CONST               1 (None)
+              10 STORE_FAST               2 (backup_path)
+
+1306          12 LOAD_CONST               1 (None)
+              14 STORE_FAST               3 (target_file)
+
+1307          16 LOAD_CONST               1 (None)
+              18 STORE_FAST               4 (file_content)
+
+1309          20 NOP
+
+1310          22 LOAD_GLOBAL              1 (NULL + getattr)
+              32 LOAD_FAST                1 (proposal)
+              34 LOAD_CONST               2 ('metadata')
+              36 LOAD_CONST               1 (None)
+              38 CALL                     3
+              46 STORE_FAST               5 (metadata)
+
+1313          48 LOAD_GLOBAL              3 (NULL + str)
+              58 LOAD_GLOBAL              5 (NULL + Path)
+              68 LOAD_GLOBAL              6 (__file__)
+              78 CALL                     1
+              86 LOAD_ATTR                9 (NULL|self + resolve)
+             106 CALL                     0
+             114 LOAD_ATTR               10 (parents)
+             134 LOAD_CONST               3 (2)
+             136 BINARY_SUBSCR
+             140 CALL                     1
+             148 STORE_DEREF             29 (_src_root)
+
+1315         150 LOAD_CONST               4 ('p')
+             152 LOAD_GLOBAL              2 (str)
+             162 LOAD_CONST               5 ('return')
+             164 LOAD_GLOBAL              2 (str)
+             174 BUILD_TUPLE              4
+             176 LOAD_CLOSURE            29 (_src_root)
+             178 BUILD_TUPLE              1
+             180 LOAD_CONST               6 (<code object _resolve_path at 0x702bc49c3210, file "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/controller.py", line 1315>)
+             182 MAKE_FUNCTION           12 (annotations, closure)
+             184 STORE_FAST               6 (_resolve_path)
+
+1322         186 LOAD_FAST                5 (metadata)
+             188 EXTENDED_ARG             1
+             190 POP_JUMP_IF_FALSE      281 (to 754)
+             192 LOAD_FAST                5 (metadata)
+             194 LOAD_ATTR               13 (NULL|self + get)
+             214 LOAD_CONST               7 ('new_file')
+             216 CALL                     1
+             224 EXTENDED_ARG             1
+             226 POP_JUMP_IF_FALSE      263 (to 754)
+
+1323         228 LOAD_FAST                1 (proposal)
+             230 LOAD_ATTR               14 (targets)
+             250 POP_JUMP_IF_FALSE       15 (to 282)
+             252 LOAD_FAST                1 (proposal)
+             254 LOAD_ATTR               14 (targets)
+             274 LOAD_CONST               8 (0)
+             276 BINARY_SUBSCR
+             280 JUMP_FORWARD             1 (to 284)
+         >>  282 LOAD_CONST               1 (None)
+         >>  284 STORE_FAST               3 (target_file)
+
+1324         286 LOAD_FAST                3 (target_file)
+             288 POP_JUMP_IF_TRUE         5 (to 300)
+
+1325         290 LOAD_CONST               9 (False)
+             292 LOAD_CONST              10 ('No target file for new_file')
+             294 LOAD_CONST              11 (('success', 'error'))
+             296 BUILD_CONST_KEY_MAP      2
+             298 RETURN_VALUE
+
+1328     >>  300 PUSH_NULL
+             302 LOAD_FAST                6 (_resolve_path)
+             304 LOAD_FAST                3 (target_file)
+             306 CALL                     1
+             314 STORE_FAST               3 (target_file)
+
+1330         316 LOAD_FAST                5 (metadata)
+             318 LOAD_ATTR               13 (NULL|self + get)
+             338 LOAD_CONST              12 ('generated_code')
+             340 LOAD_CONST              13 ('')
+             342 CALL                     2
+             350 STORE_FAST               7 (generated_code)
+
+1331         352 LOAD_FAST                7 (generated_code)
+             354 POP_JUMP_IF_TRUE         5 (to 366)
+
+1332         356 LOAD_CONST               9 (False)
+             358 LOAD_CONST              14 ('No generated code for new file')
+             360 LOAD_CONST              11 (('success', 'error'))
+             362 BUILD_CONST_KEY_MAP      2
+             364 RETURN_VALUE
+
+1334     >>  366 LOAD_GLOBAL             17 (NULL + os)
+             376 LOAD_ATTR               18 (makedirs)
+             396 LOAD_GLOBAL             16 (os)
+             406 LOAD_ATTR               20 (path)
+             426 LOAD_ATTR               23 (NULL|self + dirname)
+             446 LOAD_FAST                3 (target_file)
+             448 CALL                     1
+             456 LOAD_CONST              15 (True)
+             458 KW_NAMES                16 (('exist_ok',))
+             460 CALL                     2
+             468 POP_TOP
+
+1336         470 LOAD_GLOBAL             25 (NULL + open)
+             480 LOAD_FAST                3 (target_file)
+             482 LOAD_CONST              17 ('w')
+             484 LOAD_CONST              18 ('utf-8')
+             486 KW_NAMES                19 (('encoding',))
+             488 CALL                     3
+             496 BEFORE_WITH
+             498 STORE_FAST               8 (f)
+
+1337         500 LOAD_FAST                8 (f)
+             502 LOAD_ATTR               27 (NULL|self + write)
+             522 LOAD_FAST                7 (generated_code)
+             524 CALL                     1
+             532 POP_TOP
+
+1336         534 LOAD_CONST               1 (None)
+             536 LOAD_CONST               1 (None)
+             538 LOAD_CONST               1 (None)
+             540 CALL                     2
+             548 POP_TOP
+
+1340     >>  550 NOP
+
+1341         552 LOAD_GLOBAL             29 (NULL + compile)
+             562 LOAD_FAST                7 (generated_code)
+             564 LOAD_FAST                3 (target_file)
+             566 LOAD_CONST              20 ('exec')
+             568 CALL                     3
+             576 POP_TOP
+
+1359     >>  578 LOAD_GLOBAL             41 (NULL + len)
+             588 LOAD_FAST                7 (generated_code)
+             590 LOAD_ATTR               43 (NULL|self + splitlines)
+             610 CALL                     0
+             618 CALL                     1
+             626 STORE_FAST              12 (new_lines)
+
+1360         628 LOAD_GLOBAL             34 (logger)
+             638 LOAD_ATTR               45 (NULL|self + warning)
+             658 LOAD_CONST              24 ('📝 NEW FILE CREATED: ')
+             660 LOAD_FAST                3 (target_file)
+             662 FORMAT_VALUE             0
+             664 LOAD_CONST              25 (' (')
+             666 LOAD_FAST               12 (new_lines)
+             668 FORMAT_VALUE             0
+             670 LOAD_CONST              26 (' lines)')
+             672 BUILD_STRING             5
+             674 CALL                     1
+             682 POP_TOP
+
+1363         684 LOAD_CONST              15 (True)
+
+1364         686 LOAD_CONST              27 ('New file created: ')
+             688 LOAD_FAST                3 (target_file)
+             690 FORMAT_VALUE             0
+             692 BUILD_STRING             2
+
+1365         694 LOAD_FAST                3 (target_file)
+
+1367         696 LOAD_FAST                3 (target_file)
+
+1368         698 LOAD_GLOBAL             47 (NULL + time)
+             708 LOAD_ATTR               46 (time)
+             728 CALL                     0
+
+1369         736 LOAD_CONST              15 (True)
+
+1370         738 LOAD_CONST              28 (0.0)
+
+1371         740 LOAD_CONST               8 (0)
+
+1372         742 LOAD_FAST               12 (new_lines)
+
+1366         744 LOAD_CONST              29 (('target', 'timestamp', 'new_file', 'impact_delta', 'lines_before', 'lines_after'))
+             746 BUILD_CONST_KEY_MAP      6
+
+1362         748 LOAD_CONST              30 (('success', 'message', 'file_written', 'metrics'))
+             750 BUILD_CONST_KEY_MAP      4
+             752 RETURN_VALUE
+
+1377     >>  754 LOAD_FAST                5 (metadata)
+             756 POP_JUMP_IF_TRUE        65 (to 888)
+             758 LOAD_FAST                1 (proposal)
+             760 LOAD_ATTR               48 (diff)
+             780 POP_JUMP_IF_FALSE       53 (to 888)
+
+1378         782 LOAD_FAST                0 (self)
+             784 LOAD_ATTR               51 (NULL|self + _extract_metadata_from_diff)
+             804 LOAD_FAST                1 (proposal)
+             806 CALL                     1
+             814 STORE_FAST               5 (metadata)
+
+1379         816 LOAD_FAST                5 (metadata)
+             818 POP_JUMP_IF_FALSE       34 (to 888)
+
+1380         820 LOAD_GLOBAL             34 (logger)
+             830 LOAD_ATTR               37 (NULL|self + info)
+             850 LOAD_CONST              31 ('📋 Extracted metadata from diff for ')
+             852 LOAD_FAST                1 (proposal)
+             854 LOAD_ATTR               52 (proposal_id)
+             874 FORMAT_VALUE             0
+             876 BUILD_STRING             2
+             878 CALL                     1
+             886 POP_TOP
+
+1382     >>  888 LOAD_FAST                5 (metadata)
+             890 POP_JUMP_IF_TRUE         5 (to 902)
+
+1383         892 LOAD_CONST               9 (False)
+             894 LOAD_CONST              32 ('No metadata and no parseable diff')
+             896 LOAD_CONST              11 (('success', 'error'))
+             898 BUILD_CONST_KEY_MAP      2
+             900 RETURN_VALUE
+
+1385     >>  902 LOAD_FAST                1 (proposal)
+             904 LOAD_ATTR               14 (targets)
+             924 POP_JUMP_IF_FALSE       15 (to 956)
+             926 LOAD_FAST                1 (proposal)
+             928 LOAD_ATTR               14 (targets)
+             948 LOAD_CONST               8 (0)
+             950 BINARY_SUBSCR
+             954 JUMP_FORWARD             1 (to 958)
+         >>  956 LOAD_CONST               1 (None)
+         >>  958 STORE_FAST               3 (target_file)
+
+1387         960 LOAD_FAST                3 (target_file)
+             962 POP_JUMP_IF_FALSE        8 (to 980)
+             964 PUSH_NULL
+             966 LOAD_FAST                6 (_resolve_path)
+             968 LOAD_FAST                3 (target_file)
+             970 CALL                     1
+             978 JUMP_FORWARD             1 (to 982)
+         >>  980 LOAD_CONST               1 (None)
+         >>  982 STORE_FAST               3 (target_file)
+
+1388         984 LOAD_FAST                3 (target_file)
+             986 POP_JUMP_IF_FALSE       31 (to 1050)
+             988 LOAD_GLOBAL             16 (os)
+             998 LOAD_ATTR               20 (path)
+            1018 LOAD_ATTR               55 (NULL|self + exists)
+            1038 LOAD_FAST                3 (target_file)
+            1040 CALL                     1
+            1048 POP_JUMP_IF_TRUE         8 (to 1066)
+
+1389     >> 1050 LOAD_CONST               9 (False)
+            1052 LOAD_CONST              33 ('Target file not found: ')
+            1054 LOAD_FAST                3 (target_file)
+            1056 FORMAT_VALUE             0
+            1058 BUILD_STRING             2
+            1060 LOAD_CONST              11 (('success', 'error'))
+            1062 BUILD_CONST_KEY_MAP      2
+            1064 RETURN_VALUE
+
+1391     >> 1066 LOAD_FAST                5 (metadata)
+            1068 LOAD_ATTR               13 (NULL|self + get)
+            1088 LOAD_CONST              34 ('original_code')
+            1090 LOAD_CONST              13 ('')
+            1092 CALL                     2
+            1100 STORE_FAST              13 (original_code)
+
+1392        1102 LOAD_FAST                5 (metadata)
+            1104 LOAD_ATTR               13 (NULL|self + get)
+            1124 LOAD_CONST              35 ('refactored_code')
+            1126 LOAD_CONST              13 ('')
+            1128 CALL                     2
+            1136 STORE_FAST              14 (refactored_code)
+
+1394        1138 LOAD_FAST               13 (original_code)
+            1140 POP_JUMP_IF_FALSE        2 (to 1146)
+            1142 LOAD_FAST               14 (refactored_code)
+            1144 POP_JUMP_IF_TRUE         5 (to 1156)
+
+1395     >> 1146 LOAD_CONST               9 (False)
+            1148 LOAD_CONST              36 ('Missing original or refactored code')
+            1150 LOAD_CONST              11 (('success', 'error'))
+            1152 BUILD_CONST_KEY_MAP      2
+            1154 RETURN_VALUE
+
+1398     >> 1156 LOAD_GLOBAL             25 (NULL + open)
+            1166 LOAD_FAST                3 (target_file)
+            1168 LOAD_CONST              37 ('r')
+            1170 LOAD_CONST              18 ('utf-8')
+            1172 KW_NAMES                19 (('encoding',))
+            1174 CALL                     3
+            1182 BEFORE_WITH
+            1184 STORE_FAST               8 (f)
+
+1399        1186 LOAD_FAST                8 (f)
+            1188 LOAD_ATTR               57 (NULL|self + read)
+            1208 CALL                     0
+            1216 STORE_FAST               4 (file_content)
+
+1398        1218 LOAD_CONST               1 (None)
+            1220 LOAD_CONST               1 (None)
+            1222 LOAD_CONST               1 (None)
+            1224 CALL                     2
+            1232 POP_TOP
+
+1402     >> 1234 LOAD_CONST               9 (False)
+            1236 STORE_FAST              15 (use_ast)
+
+1403        1238 LOAD_FAST                5 (metadata)
+            1240 LOAD_ATTR               13 (NULL|self + get)
+            1260 LOAD_CONST              38 ('function')
+            1262 LOAD_CONST              13 ('')
+            1264 CALL                     2
+            1272 STORE_FAST              16 (func_name)
+
+1405        1274 LOAD_FAST               13 (original_code)
+            1276 LOAD_ATTR               59 (NULL|self + strip)
+            1296 CALL                     0
+            1304 LOAD_FAST                4 (file_content)
+            1306 CONTAINS_OP              1
+            1308 POP_JUMP_IF_FALSE       66 (to 1442)
+
+1406        1310 LOAD_FAST               16 (func_name)
+            1312 POP_JUMP_IF_FALSE       59 (to 1432)
+
+1407        1314 LOAD_FAST                0 (self)
+            1316 LOAD_ATTR               61 (NULL|self + _find_function_in_file)
+            1336 LOAD_FAST                4 (file_content)
+            1338 LOAD_FAST               16 (func_name)
+            1340 CALL                     2
+            1348 STORE_FAST              17 (existing)
+
+1408        1350 LOAD_FAST               17 (existing)
+            1352 POP_JUMP_IF_FALSE       30 (to 1414)
+
+1409        1354 LOAD_GLOBAL             34 (logger)
+            1364 LOAD_ATTR               37 (NULL|self + info)
+            1384 LOAD_CONST              39 ("🔄 Apply AST fallback: '")
+            1386 LOAD_FAST               16 (func_name)
+            1388 FORMAT_VALUE             0
+            1390 LOAD_CONST              40 ("' found by name")
+            1392 BUILD_STRING             3
+            1394 CALL                     1
+            1402 POP_TOP
+
+1410        1404 LOAD_FAST               17 (existing)
+            1406 STORE_FAST              13 (original_code)
+
+1411        1408 LOAD_CONST              15 (True)
+            1410 STORE_FAST              15 (use_ast)
+            1412 JUMP_FORWARD            14 (to 1442)
+
+1413     >> 1414 LOAD_CONST               9 (False)
+            1416 LOAD_CONST              41 ("Function '")
+            1418 LOAD_FAST               16 (func_name)
+            1420 FORMAT_VALUE             0
+            1422 LOAD_CONST              42 ("' not found (AST lookup failed)")
+            1424 BUILD_STRING             3
+            1426 LOAD_CONST              11 (('success', 'error'))
+            1428 BUILD_CONST_KEY_MAP      2
+            1430 RETURN_VALUE
+
+1415     >> 1432 LOAD_CONST               9 (False)
+            1434 LOAD_CONST              43 ('Original code not found and no function name')
+            1436 LOAD_CONST              11 (('success', 'error'))
+            1438 BUILD_CONST_KEY_MAP      2
+            1440 RETURN_VALUE
+
+1418     >> 1442 LOAD_FAST                0 (self)
+            1444 LOAD_ATTR               63 (NULL|self + _refactor_policy_check)
+            1464 LOAD_FAST               14 (refactored_code)
+            1466 LOAD_FAST                3 (target_file)
+            1468 LOAD_FAST                5 (metadata)
+            1470 CALL                     3
+            1478 STORE_FAST              18 (policy)
+
+1419        1480 LOAD_FAST               18 (policy)
+            1482 LOAD_CONST              44 ('pass')
+            1484 BINARY_SUBSCR
+            1488 POP_JUMP_IF_TRUE        11 (to 1512)
+
+1420        1490 LOAD_CONST               9 (False)
+            1492 LOAD_CONST              45 ('Policy violation: ')
+            1494 LOAD_FAST               18 (policy)
+            1496 LOAD_CONST              46 ('reason')
+            1498 BINARY_SUBSCR
+            1502 FORMAT_VALUE             0
+            1504 BUILD_STRING             2
+            1506 LOAD_CONST              11 (('success', 'error'))
+            1508 BUILD_CONST_KEY_MAP      2
+            1510 RETURN_VALUE
+
+1423     >> 1512 LOAD_FAST                3 (target_file)
+            1514 LOAD_CONST              47 ('.backup.')
+            1516 LOAD_GLOBAL             65 (NULL + int)
+            1526 LOAD_GLOBAL             47 (NULL + time)
+            1536 LOAD_ATTR               46 (time)
+            1556 CALL                     0
+            1564 CALL                     1
+            1572 FORMAT_VALUE             0
+            1574 BUILD_STRING             2
+            1576 BINARY_OP                0 (+)
+            1580 STORE_FAST               2 (backup_path)
+
+1424        1582 LOAD_GLOBAL             25 (NULL + open)
+            1592 LOAD_FAST                2 (backup_path)
+            1594 LOAD_CONST              17 ('w')
+            1596 LOAD_CONST              18 ('utf-8')
+            1598 KW_NAMES                19 (('encoding',))
+            1600 CALL                     3
+            1608 BEFORE_WITH
+            1610 STORE_FAST               8 (f)
+
+1425        1612 LOAD_FAST                8 (f)
+            1614 LOAD_ATTR               27 (NULL|self + write)
+            1634 LOAD_FAST                4 (file_content)
+            1636 CALL                     1
+            1644 POP_TOP
+
+1424        1646 LOAD_CONST               1 (None)
+            1648 LOAD_CONST               1 (None)
+            1650 LOAD_CONST               1 (None)
+            1652 CALL                     2
+            1660 POP_TOP
+
+1428     >> 1662 LOAD_FAST               15 (use_ast)
+            1664 POP_JUMP_IF_FALSE       46 (to 1758)
+            1666 LOAD_FAST               16 (func_name)
+            1668 POP_JUMP_IF_FALSE       44 (to 1758)
+
+1429        1670 LOAD_FAST                0 (self)
+            1672 LOAD_ATTR               67 (NULL|self + _replace_function_in_file)
+            1692 LOAD_FAST                4 (file_content)
+            1694 LOAD_FAST               16 (func_name)
+            1696 LOAD_FAST               14 (refactored_code)
+            1698 LOAD_ATTR               59 (NULL|self + strip)
+            1718 CALL                     0
+            1726 CALL                     3
+            1734 STORE_FAST              19 (new_content)
+
+1430        1736 LOAD_FAST               19 (new_content)
+            1738 POP_JUMP_IF_NOT_NONE    56 (to 1852)
+
+1431        1740 LOAD_CONST               9 (False)
+            1742 LOAD_CONST              48 ("AST replacement failed for '")
+            1744 LOAD_FAST               16 (func_name)
+            1746 FORMAT_VALUE             0
+            1748 LOAD_CONST              49 ("'")
+            1750 BUILD_STRING             3
+            1752 LOAD_CONST              11 (('success', 'error'))
+            1754 BUILD_CONST_KEY_MAP      2
+            1756 RETURN_VALUE
+
+1433     >> 1758 LOAD_FAST                4 (file_content)
+            1760 LOAD_ATTR               69 (NULL|self + replace)
+            1780 LOAD_FAST               13 (original_code)
+            1782 LOAD_ATTR               59 (NULL|self + strip)
+            1802 CALL                     0
+            1810 LOAD_FAST               14 (refactored_code)
+            1812 LOAD_ATTR               59 (NULL|self + strip)
+            1832 CALL                     0
+            1840 LOAD_CONST              50 (1)
+            1842 CALL                     3
+            1850 STORE_FAST              19 (new_content)
+
+1436     >> 1852 NOP
+
+1437        1854 LOAD_GLOBAL             29 (NULL + compile)
+            1864 LOAD_FAST               19 (new_content)
+            1866 LOAD_FAST                3 (target_file)
+            1868 LOAD_CONST              20 ('exec')
+            1870 CALL                     3
+            1878 POP_TOP
+
+1453     >> 1880 LOAD_GLOBAL             41 (NULL + len)
+            1890 LOAD_FAST                4 (file_content)
+            1892 LOAD_ATTR               43 (NULL|self + splitlines)
+            1912 CALL                     0
+            1920 CALL                     1
+            1928 STORE_FAST              21 (old_lines)
+
+1454        1930 LOAD_GLOBAL             41 (NULL + len)
+            1940 LOAD_FAST               19 (new_content)
+            1942 LOAD_ATTR               43 (NULL|self + splitlines)
+            1962 CALL                     0
+            1970 CALL                     1
+            1978 STORE_FAST              12 (new_lines)
+
+1455        1980 LOAD_FAST               21 (old_lines)
+            1982 LOAD_FAST               12 (new_lines)
+            1984 BINARY_OP               10 (-)
+            1988 LOAD_GLOBAL             73 (NULL + max)
+            1998 LOAD_FAST               21 (old_lines)
+            2000 LOAD_CONST              50 (1)
+            2002 CALL                     2
+            2010 BINARY_OP               11 (/)
+            2014 STORE_FAST              22 (impact_delta)
+
+1458        2016 LOAD_GLOBAL             25 (NULL + open)
+            2026 LOAD_FAST                3 (target_file)
+            2028 LOAD_CONST              17 ('w')
+            2030 LOAD_CONST              18 ('utf-8')
+            2032 KW_NAMES                19 (('encoding',))
+            2034 CALL                     3
+            2042 BEFORE_WITH
+            2044 STORE_FAST               8 (f)
+
+1459        2046 LOAD_FAST                8 (f)
+            2048 LOAD_ATTR               27 (NULL|self + write)
+            2068 LOAD_FAST               19 (new_content)
+            2070 CALL                     1
+            2078 POP_TOP
+
+1458        2080 LOAD_CONST               1 (None)
+            2082 LOAD_CONST               1 (None)
+            2084 LOAD_CONST               1 (None)
+            2086 CALL                     2
+            2094 POP_TOP
+
+1462     >> 2096 NOP
+
+1463        2098 LOAD_CONST               8 (0)
+            2100 LOAD_CONST               1 (None)
+            2102 IMPORT_NAME             37 (importlib)
+            2104 STORE_FAST              23 (importlib)
+            2106 LOAD_CONST               8 (0)
+            2108 LOAD_CONST               1 (None)
+            2110 IMPORT_NAME             38 (sys)
+            2112 STORE_FAST              24 (sys)
+
+1464        2114 LOAD_GLOBAL              3 (NULL + str)
+            2124 LOAD_GLOBAL              5 (NULL + Path)
+            2134 LOAD_GLOBAL              6 (__file__)
+            2144 CALL                     1
+            2152 LOAD_ATTR                9 (NULL|self + resolve)
+            2172 CALL                     0
+            2180 LOAD_ATTR               10 (parents)
+            2200 LOAD_CONST               3 (2)
+            2202 BINARY_SUBSCR
+            2206 CALL                     1
+            2214 STORE_FAST              25 (src_root)
+
+1465        2216 LOAD_FAST                3 (target_file)
+            2218 LOAD_ATTR               79 (NULL|self + startswith)
+            2238 LOAD_FAST               25 (src_root)
+            2240 CALL                     1
+            2248 POP_JUMP_IF_FALSE      151 (to 2552)
+            2250 LOAD_FAST                3 (target_file)
+            2252 LOAD_ATTR               81 (NULL|self + endswith)
+            2272 LOAD_CONST              55 ('.py')
+            2274 CALL                     1
+            2282 POP_JUMP_IF_FALSE      134 (to 2552)
+
+1466        2284 LOAD_GLOBAL             16 (os)
+            2294 LOAD_ATTR               20 (path)
+            2314 LOAD_ATTR               83 (NULL|self + relpath)
+            2334 LOAD_FAST                3 (target_file)
+            2336 LOAD_FAST               25 (src_root)
+            2338 CALL                     2
+            2346 STORE_FAST              26 (rel_path)
+
+1467        2348 LOAD_FAST               26 (rel_path)
+            2350 LOAD_ATTR               69 (NULL|self + replace)
+            2370 LOAD_CONST              56 ('/')
+            2372 LOAD_CONST              57 ('.')
+            2374 CALL                     2
+            2382 LOAD_ATTR               69 (NULL|self + replace)
+            2402 LOAD_CONST              55 ('.py')
+            2404 LOAD_CONST              13 ('')
+            2406 CALL                     2
+            2414 STORE_FAST              27 (module_name)
+
+1469        2416 LOAD_FAST               27 (module_name)
+            2418 LOAD_FAST               24 (sys)
+            2420 LOAD_ATTR               84 (modules)
+            2440 CONTAINS_OP              0
+            2442 POP_JUMP_IF_FALSE       13 (to 2470)
+
+1470        2444 LOAD_FAST               24 (sys)
+            2446 LOAD_ATTR               84 (modules)
+            2466 LOAD_FAST               27 (module_name)
+            2468 DELETE_SUBSCR
+
+1472     >> 2470 LOAD_FAST               23 (importlib)
+            2472 LOAD_ATTR               87 (NULL|self + import_module)
+            2492 LOAD_FAST               27 (module_name)
+            2494 CALL                     1
+            2502 POP_TOP
+
+1473        2504 LOAD_GLOBAL             34 (logger)
+            2514 LOAD_ATTR               37 (NULL|self + info)
+            2534 LOAD_CONST              58 ('✅ Runtime import OK: ')
+            2536 LOAD_FAST               27 (module_name)
+            2538 FORMAT_VALUE             0
+            2540 BUILD_STRING             2
+            2542 CALL                     1
+            2550 POP_TOP
+
+1481     >> 2552 LOAD_GLOBAL             34 (logger)
+            2562 LOAD_ATTR               45 (NULL|self + warning)
+            2582 LOAD_CONST              61 ('📝 CODE APPLIED: ')
+            2584 LOAD_FAST                3 (target_file)
+            2586 FORMAT_VALUE             0
+            2588 LOAD_CONST              62 (' (backup: ')
+            2590 LOAD_FAST                2 (backup_path)
+            2592 FORMAT_VALUE             0
+            2594 LOAD_CONST              63 (')')
+            2596 BUILD_STRING             5
+            2598 CALL                     1
+            2606 POP_TOP
+
+1484        2608 LOAD_CONST              15 (True)
+
+1485        2610 LOAD_CONST              64 ('Code applied to ')
+            2612 LOAD_FAST                3 (target_file)
+            2614 FORMAT_VALUE             0
+            2616 BUILD_STRING             2
+
+1486        2618 LOAD_FAST                3 (target_file)
+
+1487        2620 LOAD_FAST                2 (backup_path)
+
+1489        2622 LOAD_FAST                3 (target_file)
+
+1490        2624 LOAD_FAST                5 (metadata)
+            2626 LOAD_ATTR               13 (NULL|self + get)
+            2646 LOAD_CONST              38 ('function')
+            2648 LOAD_CONST              65 ('unknown')
+            2650 CALL                     2
+
+1491        2658 LOAD_FAST                5 (metadata)
+            2660 LOAD_ATTR               13 (NULL|self + get)
+            2680 LOAD_CONST              66 ('confidence')
+            2682 LOAD_CONST               8 (0)
+            2684 CALL                     2
+
+1492        2692 LOAD_GLOBAL             47 (NULL + time)
+            2702 LOAD_ATTR               46 (time)
+            2722 CALL                     0
+
+1493        2730 LOAD_FAST               22 (impact_delta)
+
+1494        2732 LOAD_FAST               21 (old_lines)
+
+1495        2734 LOAD_FAST               12 (new_lines)
+
+1488        2736 LOAD_CONST              67 (('target', 'function', 'confidence', 'timestamp', 'impact_delta', 'lines_before', 'lines_after'))
+            2738 BUILD_CONST_KEY_MAP      7
+
+1483        2740 LOAD_CONST              68 (('success', 'message', 'file_written', 'backup', 'metrics'))
+            2742 BUILD_CONST_KEY_MAP      5
+            2744 RETURN_VALUE
+
+1336     >> 2746 PUSH_EXC_INFO
+            2748 WITH_EXCEPT_START
+            2750 POP_JUMP_IF_TRUE         1 (to 2754)
+            2752 RERAISE                  2
+         >> 2754 POP_TOP
+            2756 POP_EXCEPT
+            2758 POP_TOP
+            2760 POP_TOP
+            2762 EXTENDED_ARG             4
+            2764 JUMP_BACKWARD         1108 (to 550)
+         >> 2766 COPY                     3
+            2768 POP_EXCEPT
+            2770 RERAISE                  1
+         >> 2772 PUSH_EXC_INFO
+
+1342        2774 LOAD_GLOBAL             30 (SyntaxError)
+            2784 CHECK_EXC_MATCH
+            2786 POP_JUMP_IF_FALSE      234 (to 3256)
+            2788 STORE_FAST               9 (e)
+
+1344        2790 LOAD_FAST                0 (self)
+            2792 LOAD_ATTR               33 (NULL|self + _rectify_code_syntax)
+            2812 LOAD_FAST                7 (generated_code)
+            2814 LOAD_GLOBAL              3 (NULL + str)
+            2824 LOAD_FAST                9 (e)
+            2826 CALL                     1
+            2834 LOAD_FAST                3 (target_file)
+            2836 CALL                     3
+            2844 GET_AWAITABLE            0
+            2846 LOAD_CONST               1 (None)
+         >> 2848 SEND                     4 (to 2860)
+            2852 YIELD_VALUE              5
+            2854 RESUME                   3
+            2856 JUMP_BACKWARD_NO_INTERRUPT     5 (to 2848)
+         >> 2858 CLEANUP_THROW
+         >> 2860 END_SEND
+            2862 STORE_FAST              10 (rectified)
+
+1345        2864 LOAD_FAST               10 (rectified)
+            2866 POP_JUMP_IF_FALSE      150 (to 3168)
+
+1346        2868 LOAD_GLOBAL             34 (logger)
+            2878 LOAD_ATTR               37 (NULL|self + info)
+            2898 LOAD_CONST              21 ('🔧 Rectifier successfully proposed fix for new file in ')
+            2900 LOAD_FAST                3 (target_file)
+            2902 FORMAT_VALUE             0
+            2904 BUILD_STRING             2
+            2906 CALL                     1
+            2914 POP_TOP
+
+1347        2916 NOP
+
+1348        2918 LOAD_GLOBAL             29 (NULL + compile)
+            2928 LOAD_FAST               10 (rectified)
+            2930 LOAD_FAST                3 (target_file)
+            2932 LOAD_CONST              20 ('exec')
+            2934 CALL                     3
+            2942 POP_TOP
+
+1349        2944 LOAD_GLOBAL             25 (NULL + open)
+            2954 LOAD_FAST                3 (target_file)
+            2956 LOAD_CONST              17 ('w')
+            2958 LOAD_CONST              18 ('utf-8')
+            2960 KW_NAMES                19 (('encoding',))
+            2962 CALL                     3
+            2970 BEFORE_WITH
+            2972 STORE_FAST               8 (f)
+
+1350        2974 LOAD_FAST                8 (f)
+            2976 LOAD_ATTR               27 (NULL|self + write)
+            2996 LOAD_FAST               10 (rectified)
+            2998 CALL                     1
+            3006 POP_TOP
+
+1349        3008 LOAD_CONST               1 (None)
+            3010 LOAD_CONST               1 (None)
+            3012 LOAD_CONST               1 (None)
+            3014 CALL                     2
+            3022 POP_TOP
+            3024 JUMP_FORWARD            12 (to 3050)
+         >> 3026 PUSH_EXC_INFO
+            3028 WITH_EXCEPT_START
+            3030 POP_JUMP_IF_TRUE         1 (to 3034)
+            3032 RERAISE                  2
+         >> 3034 POP_TOP
+            3036 POP_EXCEPT
+            3038 POP_TOP
+            3040 POP_TOP
+            3042 JUMP_FORWARD             3 (to 3050)
+         >> 3044 COPY                     3
+            3046 POP_EXCEPT
+            3048 RERAISE                  1
+
+1351     >> 3050 LOAD_FAST               10 (rectified)
+            3052 STORE_FAST               7 (generated_code)
+            3054 JUMP_FORWARD            90 (to 3236)
+         >> 3056 PUSH_EXC_INFO
+
+1352        3058 LOAD_GLOBAL             30 (SyntaxError)
+            3068 CHECK_EXC_MATCH
+            3070 POP_JUMP_IF_FALSE       44 (to 3160)
+            3072 STORE_FAST              11 (re_re)
+
+1353        3074 LOAD_GLOBAL             17 (NULL + os)
+            3084 LOAD_ATTR               38 (remove)
+            3104 LOAD_FAST                3 (target_file)
+            3106 CALL                     1
+            3114 POP_TOP
+
+1354        3116 LOAD_CONST               9 (False)
+            3118 LOAD_CONST              22 ('Rectifier failed format validation parsing: ')
+            3120 LOAD_FAST               11 (re_re)
+            3122 FORMAT_VALUE             0
+            3124 BUILD_STRING             2
+            3126 LOAD_CONST              11 (('success', 'error'))
+            3128 BUILD_CONST_KEY_MAP      2
+            3130 SWAP                     2
+            3132 POP_EXCEPT
+            3134 LOAD_CONST               1 (None)
+            3136 STORE_FAST              11 (re_re)
+            3138 DELETE_FAST             11 (re_re)
+            3140 SWAP                     2
+            3142 POP_EXCEPT
+            3144 LOAD_CONST               1 (None)
+            3146 STORE_FAST               9 (e)
+            3148 DELETE_FAST              9 (e)
+            3150 RETURN_VALUE
+         >> 3152 LOAD_CONST               1 (None)
+            3154 STORE_FAST              11 (re_re)
+            3156 DELETE_FAST             11 (re_re)
+            3158 RERAISE                  1
+
+1352     >> 3160 RERAISE                  0
+         >> 3162 COPY                     3
+            3164 POP_EXCEPT
+            3166 RERAISE                  1
+
+1356     >> 3168 LOAD_GLOBAL             17 (NULL + os)
+            3178 LOAD_ATTR               38 (remove)
+            3198 LOAD_FAST                3 (target_file)
+            3200 CALL                     1
+            3208 POP_TOP
+
+1357        3210 LOAD_CONST               9 (False)
+            3212 LOAD_CONST              23 ('Syntax error in new file: ')
+            3214 LOAD_FAST                9 (e)
+            3216 FORMAT_VALUE             0
+            3218 BUILD_STRING             2
+            3220 LOAD_CONST              11 (('success', 'error'))
+            3222 BUILD_CONST_KEY_MAP      2
+            3224 SWAP                     2
+            3226 POP_EXCEPT
+            3228 LOAD_CONST               1 (None)
+            3230 STORE_FAST               9 (e)
+            3232 DELETE_FAST              9 (e)
+            3234 RETURN_VALUE
+
+1351     >> 3236 POP_EXCEPT
+            3238 LOAD_CONST               1 (None)
+            3240 STORE_FAST               9 (e)
+            3242 DELETE_FAST              9 (e)
+            3244 EXTENDED_ARG             5
+            3246 JUMP_BACKWARD         1335 (to 578)
+         >> 3248 LOAD_CONST               1 (None)
+            3250 STORE_FAST               9 (e)
+            3252 DELETE_FAST              9 (e)
+            3254 RERAISE                  1
+
+1342     >> 3256 RERAISE                  0
+         >> 3258 COPY                     3
+            3260 POP_EXCEPT
+            3262 RERAISE                  1
+
+1398     >> 3264 PUSH_EXC_INFO
+            3266 WITH_EXCEPT_START
+            3268 POP_JUMP_IF_TRUE         1 (to 3272)
+            3270 RERAISE                  2
+         >> 3272 POP_TOP
+            3274 POP_EXCEPT
+            3276 POP_TOP
+            3278 POP_TOP
+            3280 EXTENDED_ARG             4
+            3282 JUMP_BACKWARD         1025 (to 1234)
+         >> 3284 COPY                     3
+            3286 POP_EXCEPT
+            3288 RERAISE                  1
+
+1424     >> 3290 PUSH_EXC_INFO
+            3292 WITH_EXCEPT_START
+            3294 POP_JUMP_IF_TRUE         1 (to 3298)
+            3296 RERAISE                  2
+         >> 3298 POP_TOP
+            3300 POP_EXCEPT
+            3302 POP_TOP
+            3304 POP_TOP
+            3306 EXTENDED_ARG             3
+            3308 JUMP_BACKWARD          824 (to 1662)
+         >> 3310 COPY                     3
+            3312 POP_EXCEPT
+            3314 RERAISE                  1
+         >> 3316 PUSH_EXC_INFO
+
+1438        3318 LOAD_GLOBAL             30 (SyntaxError)
+            3328 CHECK_EXC_MATCH
+            3330 POP_JUMP_IF_FALSE      192 (to 3716)
+            3332 STORE_FAST              20 (se)
+
+1439        3334 LOAD_GLOBAL             34 (logger)
+            3344 LOAD_ATTR               45 (NULL|self + warning)
+            3364 LOAD_CONST              51 ('❌ Syntax error in refactored code. Invoking Rectifier... ')
+            3366 LOAD_FAST               20 (se)
+            3368 FORMAT_VALUE             0
+            3370 BUILD_STRING             2
+            3372 CALL                     1
+            3380 POP_TOP
+
+1441        3382 LOAD_FAST                0 (self)
+            3384 LOAD_ATTR               33 (NULL|self + _rectify_code_syntax)
+            3404 LOAD_FAST               19 (new_content)
+            3406 LOAD_GLOBAL              3 (NULL + str)
+            3416 LOAD_FAST               20 (se)
+            3418 CALL                     1
+            3426 LOAD_FAST                3 (target_file)
+            3428 CALL                     3
+            3436 GET_AWAITABLE            0
+            3438 LOAD_CONST               1 (None)
+         >> 3440 SEND                     4 (to 3452)
+            3444 YIELD_VALUE              5
+            3446 RESUME                   3
+            3448 JUMP_BACKWARD_NO_INTERRUPT     5 (to 3440)
+         >> 3450 CLEANUP_THROW
+         >> 3452 END_SEND
+            3454 STORE_FAST              10 (rectified)
+
+1442        3456 LOAD_FAST               10 (rectified)
+            3458 POP_JUMP_IF_FALSE      105 (to 3670)
+
+1443        3460 NOP
+
+1444        3462 LOAD_GLOBAL             29 (NULL + compile)
+            3472 LOAD_FAST               10 (rectified)
+            3474 LOAD_FAST                3 (target_file)
+            3476 LOAD_CONST              20 ('exec')
+            3478 CALL                     3
+            3486 POP_TOP
+
+1445        3488 LOAD_FAST               10 (rectified)
+            3490 STORE_FAST              19 (new_content)
+
+1446        3492 LOAD_GLOBAL             34 (logger)
+            3502 LOAD_ATTR               37 (NULL|self + info)
+            3522 LOAD_CONST              52 ('🔧 Rectifier successfully fixed syntax error in existing file ')
+            3524 LOAD_GLOBAL             16 (os)
+            3534 LOAD_ATTR               20 (path)
+            3554 LOAD_ATTR               71 (NULL|self + basename)
+            3574 LOAD_FAST                3 (target_file)
+            3576 CALL                     1
+            3584 FORMAT_VALUE             0
+            3586 BUILD_STRING             2
+            3588 CALL                     1
+            3596 POP_TOP
+            3598 JUMP_FORWARD            48 (to 3696)
+         >> 3600 PUSH_EXC_INFO
+
+1447        3602 LOAD_GLOBAL             30 (SyntaxError)
+            3612 CHECK_EXC_MATCH
+            3614 POP_JUMP_IF_FALSE       23 (to 3662)
+            3616 STORE_FAST              11 (re_re)
+
+1448        3618 LOAD_CONST               9 (False)
+            3620 LOAD_CONST              53 ('Rectifier failed to fix Syntax error: ')
+            3622 LOAD_FAST               11 (re_re)
+            3624 FORMAT_VALUE             0
+            3626 BUILD_STRING             2
+            3628 LOAD_CONST              11 (('success', 'error'))
+            3630 BUILD_CONST_KEY_MAP      2
+            3632 SWAP                     2
+            3634 POP_EXCEPT
+            3636 LOAD_CONST               1 (None)
+            3638 STORE_FAST              11 (re_re)
+            3640 DELETE_FAST             11 (re_re)
+            3642 SWAP                     2
+            3644 POP_EXCEPT
+            3646 LOAD_CONST               1 (None)
+            3648 STORE_FAST              20 (se)
+            3650 DELETE_FAST             20 (se)
+            3652 RETURN_VALUE
+         >> 3654 LOAD_CONST               1 (None)
+            3656 STORE_FAST              11 (re_re)
+            3658 DELETE_FAST             11 (re_re)
+            3660 RERAISE                  1
+
+1447     >> 3662 RERAISE                  0
+         >> 3664 COPY                     3
+            3666 POP_EXCEPT
+            3668 RERAISE                  1
+
+1450     >> 3670 LOAD_CONST               9 (False)
+            3672 LOAD_CONST              54 ('Syntax error: ')
+            3674 LOAD_FAST               20 (se)
+            3676 FORMAT_VALUE             0
+            3678 BUILD_STRING             2
+            3680 LOAD_CONST              11 (('success', 'error'))
+            3682 BUILD_CONST_KEY_MAP      2
+            3684 SWAP                     2
+            3686 POP_EXCEPT
+            3688 LOAD_CONST               1 (None)
+            3690 STORE_FAST              20 (se)
+            3692 DELETE_FAST             20 (se)
+            3694 RETURN_VALUE
+
+1446     >> 3696 POP_EXCEPT
+            3698 LOAD_CONST               1 (None)
+            3700 STORE_FAST              20 (se)
+            3702 DELETE_FAST             20 (se)
+            3704 EXTENDED_ARG             3
+            3706 JUMP_BACKWARD          914 (to 1880)
+         >> 3708 LOAD_CONST               1 (None)
+            3710 STORE_FAST              20 (se)
+            3712 DELETE_FAST             20 (se)
+            3714 RERAISE                  1
+
+1438     >> 3716 RERAISE                  0
+         >> 3718 COPY                     3
+            3720 POP_EXCEPT
+            3722 RERAISE                  1
+
+1458     >> 3724 PUSH_EXC_INFO
+            3726 WITH_EXCEPT_START
+            3728 POP_JUMP_IF_TRUE         1 (to 3732)
+            3730 RERAISE                  2
+         >> 3732 POP_TOP
+            3734 POP_EXCEPT
+            3736 POP_TOP
+            3738 POP_TOP
+            3740 EXTENDED_ARG             3
+            3742 JUMP_BACKWARD          824 (to 2096)
+         >> 3744 COPY                     3
+            3746 POP_EXCEPT
+            3748 RERAISE                  1
+         >> 3750 PUSH_EXC_INFO
+
+1474        3752 LOAD_GLOBAL             88 (Exception)
+            3762 CHECK_EXC_MATCH
+            3764 POP_JUMP_IF_FALSE       95 (to 3956)
+            3766 STORE_FAST              28 (import_err)
+
+1476        3768 LOAD_GLOBAL             34 (logger)
+            3778 LOAD_ATTR               91 (NULL|self + error)
+            3798 LOAD_CONST              59 ('❌ RUNTIME FAIL after apply — AUTO-ROLLBACK: ')
+            3800 LOAD_FAST               28 (import_err)
+            3802 FORMAT_VALUE             0
+            3804 BUILD_STRING             2
+            3806 CALL                     1
+            3814 POP_TOP
+
+1477        3816 LOAD_GLOBAL             25 (NULL + open)
+            3826 LOAD_FAST                3 (target_file)
+            3828 LOAD_CONST              17 ('w')
+            3830 LOAD_CONST              18 ('utf-8')
+            3832 KW_NAMES                19 (('encoding',))
+            3834 CALL                     3
+            3842 BEFORE_WITH
+            3844 STORE_FAST               8 (f)
+
+1478        3846 LOAD_FAST                8 (f)
+            3848 LOAD_ATTR               27 (NULL|self + write)
+            3868 LOAD_FAST                4 (file_content)
+            3870 CALL                     1
+            3878 POP_TOP
+
+1477        3880 LOAD_CONST               1 (None)
+            3882 LOAD_CONST               1 (None)
+            3884 LOAD_CONST               1 (None)
+            3886 CALL                     2
+            3894 POP_TOP
+            3896 JUMP_FORWARD            12 (to 3922)
+         >> 3898 PUSH_EXC_INFO
+            3900 WITH_EXCEPT_START
+            3902 POP_JUMP_IF_TRUE         1 (to 3906)
+            3904 RERAISE                  2
+         >> 3906 POP_TOP
+            3908 POP_EXCEPT
+            3910 POP_TOP
+            3912 POP_TOP
+            3914 JUMP_FORWARD             3 (to 3922)
+         >> 3916 COPY                     3
+            3918 POP_EXCEPT
+            3920 RERAISE                  1
+
+1479     >> 3922 LOAD_CONST               9 (False)
+            3924 LOAD_CONST              60 ('Runtime fail (auto-rolled back): ')
+            3926 LOAD_FAST               28 (import_err)
+            3928 FORMAT_VALUE             0
+            3930 BUILD_STRING             2
+            3932 LOAD_CONST              11 (('success', 'error'))
+            3934 BUILD_CONST_KEY_MAP      2
+            3936 SWAP                     2
+            3938 POP_EXCEPT
+            3940 LOAD_CONST               1 (None)
+            3942 STORE_FAST              28 (import_err)
+            3944 DELETE_FAST             28 (import_err)
+            3946 RETURN_VALUE
+         >> 3948 LOAD_CONST               1 (None)
+            3950 STORE_FAST              28 (import_err)
+            3952 DELETE_FAST             28 (import_err)
+            3954 RERAISE                  1
+
+1474     >> 3956 RERAISE                  0
+         >> 3958 COPY                     3
+            3960 POP_EXCEPT
+            3962 RERAISE                  1
+         >> 3964 PUSH_EXC_INFO
+
+1499        3966 LOAD_GLOBAL             88 (Exception)
+            3976 CHECK_EXC_MATCH
+            3978 POP_JUMP_IF_FALSE      148 (to 4276)
+            3980 STORE_FAST               9 (e)
+
+1501        3982 LOAD_FAST                2 (backup_path)
+            3984 POP_JUMP_IF_FALSE       98 (to 4182)
+            3986 LOAD_FAST                3 (target_file)
+            3988 POP_JUMP_IF_FALSE       96 (to 4182)
+            3990 LOAD_FAST                4 (file_content)
+            3992 POP_JUMP_IF_FALSE       94 (to 4182)
+
+1502        3994 NOP
+
+1503        3996 LOAD_GLOBAL             25 (NULL + open)
+            4006 LOAD_FAST                3 (target_file)
+            4008 LOAD_CONST              17 ('w')
+            4010 LOAD_CONST              18 ('utf-8')
+            4012 KW_NAMES                19 (('encoding',))
+            4014 CALL                     3
+            4022 BEFORE_WITH
+            4024 STORE_FAST               8 (f)
+
+1504        4026 LOAD_FAST                8 (f)
+            4028 LOAD_ATTR               27 (NULL|self + write)
+            4048 LOAD_FAST                4 (file_content)
+            4050 CALL                     1
+            4058 POP_TOP
+
+1503        4060 LOAD_CONST               1 (None)
+            4062 LOAD_CONST               1 (None)
+            4064 LOAD_CONST               1 (None)
+            4066 CALL                     2
+            4074 POP_TOP
+            4076 JUMP_FORWARD            12 (to 4102)
+         >> 4078 PUSH_EXC_INFO
+            4080 WITH_EXCEPT_START
+            4082 POP_JUMP_IF_TRUE         1 (to 4086)
+            4084 RERAISE                  2
+         >> 4086 POP_TOP
+            4088 POP_EXCEPT
+            4090 POP_TOP
+            4092 POP_TOP
+            4094 JUMP_FORWARD             3 (to 4102)
+         >> 4096 COPY                     3
+            4098 POP_EXCEPT
+            4100 RERAISE                  1
+
+1505     >> 4102 LOAD_GLOBAL             34 (logger)
+            4112 LOAD_ATTR               91 (NULL|self + error)
+            4132 LOAD_CONST              69 ('🔄 Emergency rollback completed for ')
+            4134 LOAD_FAST                3 (target_file)
+            4136 FORMAT_VALUE             0
+            4138 BUILD_STRING             2
+            4140 CALL                     1
+            4148 POP_TOP
+            4150 JUMP_FORWARD            15 (to 4182)
+         >> 4152 PUSH_EXC_INFO
+
+1506        4154 LOAD_GLOBAL             88 (Exception)
+            4164 CHECK_EXC_MATCH
+            4166 POP_JUMP_IF_FALSE        3 (to 4174)
+            4168 POP_TOP
+
+1507        4170 POP_EXCEPT
+            4172 JUMP_FORWARD             4 (to 4182)
+
+1506     >> 4174 RERAISE                  0
+         >> 4176 COPY                     3
+            4178 POP_EXCEPT
+            4180 RERAISE                  1
+
+1508     >> 4182 LOAD_GLOBAL             34 (logger)
+            4192 LOAD_ATTR               91 (NULL|self + error)
+            4212 LOAD_CONST              70 ('Code change failed: ')
+            4214 LOAD_FAST                9 (e)
+            4216 FORMAT_VALUE             0
+            4218 BUILD_STRING             2
+            4220 CALL                     1
+            4228 POP_TOP
+
+1509        4230 LOAD_CONST               9 (False)
+            4232 LOAD_GLOBAL              3 (NULL + str)
+            4242 LOAD_FAST                9 (e)
+            4244 CALL                     1
+            4252 LOAD_CONST              11 (('success', 'error'))
+            4254 BUILD_CONST_KEY_MAP      2
+            4256 SWAP                     2
+            4258 POP_EXCEPT
+            4260 LOAD_CONST               1 (None)
+            4262 STORE_FAST               9 (e)
+            4264 DELETE_FAST              9 (e)
+            4266 RETURN_VALUE
+         >> 4268 LOAD_CONST               1 (None)
+            4270 STORE_FAST               9 (e)
+            4272 DELETE_FAST              9 (e)
+            4274 RERAISE                  1
+
+1499     >> 4276 RERAISE                  0
+         >> 4278 COPY                     3
+            4280 POP_EXCEPT
+            4282 RERAISE                  1
+         >> 4284 CALL_INTRINSIC_1         3 (INTRINSIC_STOPITERATION_ERROR)
+            4286 RERAISE                  1
+ExceptionTable:
+  6 to 18 -> 4284 [0] lasti
+  22 to 296 -> 3964 [0]
+  298 to 298 -> 4284 [0] lasti
+  300 to 362 -> 3964 [0]
+  364 to 364 -> 4284 [0] lasti
+  366 to 496 -> 3964 [0]
+  498 to 532 -> 2746 [1] lasti
+  534 to 548 -> 3964 [0]
+  552 to 576 -> 2772 [0]
+  578 to 750 -> 3964 [0]
+  752 to 752 -> 4284 [0] lasti
+  754 to 898 -> 3964 [0]
+  900 to 900 -> 4284 [0] lasti
+  902 to 1062 -> 3964 [0]
+  1064 to 1064 -> 4284 [0] lasti
+  1066 to 1152 -> 3964 [0]
+  1154 to 1154 -> 4284 [0] lasti
+  1156 to 1182 -> 3964 [0]
+  1184 to 1216 -> 3264 [1] lasti
+  1218 to 1428 -> 3964 [0]
+  1430 to 1430 -> 4284 [0] lasti
+  1432 to 1438 -> 3964 [0]
+  1440 to 1440 -> 4284 [0] lasti
+  1442 to 1508 -> 3964 [0]
+  1510 to 1510 -> 4284 [0] lasti
+  1512 to 1608 -> 3964 [0]
+  1610 to 1644 -> 3290 [1] lasti
+  1646 to 1754 -> 3964 [0]
+  1756 to 1756 -> 4284 [0] lasti
+  1758 to 1850 -> 3964 [0]
+  1854 to 1878 -> 3316 [0]
+  1880 to 2042 -> 3964 [0]
+  2044 to 2078 -> 3724 [1] lasti
+  2080 to 2094 -> 3964 [0]
+  2098 to 2550 -> 3750 [0]
+  2552 to 2742 -> 3964 [0]
+  2744 to 2744 -> 4284 [0] lasti
+  2746 to 2754 -> 2766 [3] lasti
+  2756 to 2770 -> 3964 [0]
+  2772 to 2788 -> 3258 [1] lasti
+  2790 to 2850 -> 3248 [1] lasti
+  2852 to 2852 -> 2858 [3]
+  2854 to 2914 -> 3248 [1] lasti
+  2918 to 2970 -> 3056 [1]
+  2972 to 3006 -> 3026 [2] lasti
+  3008 to 3024 -> 3056 [1]
+  3026 to 3034 -> 3044 [4] lasti
+  3036 to 3052 -> 3056 [1]
+  3054 to 3054 -> 3248 [1] lasti
+  3056 to 3072 -> 3162 [2] lasti
+  3074 to 3128 -> 3152 [2] lasti
+  3130 to 3130 -> 3162 [2] lasti
+  3132 to 3138 -> 3248 [1] lasti
+  3140 to 3140 -> 3258 [1] lasti
+  3142 to 3148 -> 3964 [0]
+  3150 to 3150 -> 4284 [0] lasti
+  3152 to 3160 -> 3162 [2] lasti
+  3162 to 3222 -> 3248 [1] lasti
+  3224 to 3224 -> 3258 [1] lasti
+  3226 to 3232 -> 3964 [0]
+  3234 to 3234 -> 4284 [0] lasti
+  3236 to 3246 -> 3964 [0]
+  3248 to 3256 -> 3258 [1] lasti
+  3258 to 3262 -> 3964 [0]
+  3264 to 3272 -> 3284 [3] lasti
+  3274 to 3288 -> 3964 [0]
+  3290 to 3298 -> 3310 [3] lasti
+  3300 to 3314 -> 3964 [0]
+  3316 to 3332 -> 3718 [1] lasti
+  3334 to 3442 -> 3708 [1] lasti
+  3444 to 3444 -> 3450 [3]
+  3446 to 3458 -> 3708 [1] lasti
+  3462 to 3596 -> 3600 [1]
+  3598 to 3598 -> 3708 [1] lasti
+  3600 to 3616 -> 3664 [2] lasti
+  3618 to 3630 -> 3654 [2] lasti
+  3632 to 3632 -> 3664 [2] lasti
+  3634 to 3640 -> 3708 [1] lasti
+  3642 to 3642 -> 3718 [1] lasti
+  3644 to 3650 -> 3964 [0]
+  3652 to 3652 -> 4284 [0] lasti
+  3654 to 3662 -> 3664 [2] lasti
+  3664 to 3682 -> 3708 [1] lasti
+  3684 to 3684 -> 3718 [1] lasti
+  3686 to 3692 -> 3964 [0]
+  3694 to 3694 -> 4284 [0] lasti
+  3696 to 3706 -> 3964 [0]
+  3708 to 3716 -> 3718 [1] lasti
+  3718 to 3722 -> 3964 [0]
+  3724 to 3732 -> 3744 [3] lasti
+  3734 to 3748 -> 3964 [0]
+  3750 to 3766 -> 3958 [1] lasti
+  3768 to 3842 -> 3948 [1] lasti
+  3844 to 3878 -> 3898 [2] lasti
+  3880 to 3896 -> 3948 [1] lasti
+  3898 to 3906 -> 3916 [4] lasti
+  3908 to 3934 -> 3948 [1] lasti
+  3936 to 3936 -> 3958 [1] lasti
+  3938 to 3944 -> 3964 [0]
+  3946 to 3946 -> 4284 [0] lasti
+  3948 to 3956 -> 3958 [1] lasti
+  3958 to 3962 -> 3964 [0]
+  3964 to 3980 -> 4278 [1] lasti
+  3982 to 3992 -> 4268 [1] lasti
+  3996 to 4022 -> 4152 [1]
+  4024 to 4058 -> 4078 [2] lasti
+  4060 to 4076 -> 4152 [1]
+  4078 to 4086 -> 4096 [4] lasti
+  4088 to 4148 -> 4152 [1]
+  4150 to 4150 -> 4268 [1] lasti
+  4152 to 4168 -> 4176 [2] lasti
+  4170 to 4172 -> 4268 [1] lasti
+  4174 to 4174 -> 4176 [2] lasti
+  4176 to 4254 -> 4268 [1] lasti
+  4256 to 4256 -> 4278 [1] lasti
+  4258 to 4266 -> 4284 [0] lasti
+  4268 to 4276 -> 4278 [1] lasti
+  4278 to 4282 -> 4284 [0] lasti
+
+Disassembly of <code object _resolve_path at 0x702bc49c3210, file "/home/noogh/projects/noogh_unified_system/src/unified_core/evolution/controller.py", line 1315>:
+               0 COPY_FREE_VARS           1
+
+1315           2 RESUME                   0
+
+1317           4 LOAD_FAST                0 (p)
+               6 POP_JUMP_IF_FALSE       63 (to 134)
+               8 LOAD_GLOBAL              0 (os)
+              18 LOAD_ATTR                2 (path)
+              38 LOAD_ATTR                5 (NULL|self + isabs)
+              58 LOAD_FAST                0 (p)
+              60 CALL                     1
+              68 POP_JUMP_IF_TRUE        32 (to 134)
+
+1318          70 LOAD_GLOBAL              0 (os)
+              80 LOAD_ATTR                2 (path)
+             100 LOAD_ATTR                7 (NULL|self + join)
+             120 LOAD_DEREF               1 (_src_root)
+             122 LOAD_FAST                0 (p)
+             124 CALL                     2
+             132 RETURN_VALUE
+
+1319     >>  134 LOAD_FAST                0 (p)
+             136 RETURN_VALUE

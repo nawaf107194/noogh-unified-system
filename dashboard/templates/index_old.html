@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOOGH Sovereign Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-deep: #05050a;
+            --glass-bg: rgba(10, 15, 25, 0.4);
+            --glass-border: rgba(60, 130, 246, 0.15);
+            --neon-blue: #3b82f6;
+            --neon-blue-glow: rgba(59, 130, 246, 0.5);
+            --neon-cyan: #06b6d4;
+            --neon-green: #10b981;
+            --neon-green-glow: rgba(16, 185, 129, 0.5);
+            --neon-pink: #ec4899;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --font-main: 'Cairo', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Glitch effect on header */
+        .header {
+            text-align: center;
+            padding: 2rem 0 1rem;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin: 0;
+            font-family: var(--font-mono);
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow:
+                0 0 10px var(--neon-cyan),
+                0 0 20px var(--neon-blue),
+                0 0 40px var(--neon-blue);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid var(--neon-green);
+            border-radius: 4px;
+            color: var(--neon-green);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2) inset;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: blink 1.5s infinite alternate;
+        }
+
+        @keyframes blink {
+            from {
+                opacity: 1;
+                box-shadow: 0 0 15px var(--neon-green);
+            }
+
+            to {
+                opacity: 0.2;
+                box-shadow: 0 0 2px var(--neon-green);
+            }
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            padding: 24px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .left-col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            align-content: start;
+        }
+
+        /* Glass Cyber Panels */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            opacity: 0.5;
+        }
+
+        .glass-panel h2 {
+            font-size: 1.2rem;
+            font-family: var(--font-mono);
+            color: var(--neon-cyan);
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            padding-bottom: 10px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            position: relative;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .insight-box {
+            background: rgba(59, 130, 246, 0.05);
+            border-right: 3px solid var(--neon-blue);
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .insight-box p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .insight-box.decision {
+            border-color: var(--neon-pink);
+            background: rgba(236, 72, 153, 0.05);
+        }
+
+        /* Lists */
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        li {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            position: relative;
+        }
+
+        .goal-item::before {
+            content: '>>';
+            color: var(--neon-blue);
+            font-family: var(--font-mono);
+            margin-left: 8px;
+            display: inline-block;
+        }
+
+        .short-goal::before {
+            color: #fbbf24;
+        }
+
+        .action-item {
+            border-right: 2px solid var(--neon-green);
+            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.03));
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .action-item strong {
+            color: var(--neon-green);
+        }
+
+        .action-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-align: left;
+        }
+
+        /* ----- Chat Panel ----- */
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 180px);
+            position: sticky;
+            top: 24px;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            /* Custom Scrollbar */
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+            border-radius: 10px;
+        }
+
+        .msg {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg-user {
+            align-self: flex-start;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-top-right-radius: 0;
+            color: #fff;
+        }
+
+        .msg-brain {
+            align-self: flex-end;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-top-left-radius: 0;
+            font-family: var(--font-mono);
+            color: var(--neon-green);
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .chat-send {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 0 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .chat-send:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .typing-indicator {
+            align-self: flex-end;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>NOOGH Sovereign</h1>
+        <div class="status-badge" id="statusBadge">
+            <div class="status-dot"></div>
+            SYSTEM ONLINE // ALL SYSTEMS NOMINAL
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="left-col">
+            <!-- Mind & Synthesis -->
+            <div class="glass-panel">
+                <h2>[01] SYNTHESIS CORE</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="valBeliefs">--</div>
+                        <div class="stat-label">Memory Nodes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="valScore">--</div>
+                        <div class="stat-label">Sys Score</div>
+                    </div>
+                </div>
+
+                <h4 style="color:var(--text-muted); margin-bottom: 8px; font-family:var(--font-mono); font-size:0.8rem">
+                    >> CURRENT_INSIGHT</h4>
+                <div class="insight-box">
+                    <p id="selfInsight">...Awaiting Telemetry...</p>
+                </div>
+
+                <h4 style="color:var(--text-muted); margin-bottom: 8px; font-family:var(--font-mono); font-size:0.8rem">
+                    >> ACTIVE_DIRECTIVE</h4>
+                <div class="insight-box decision">
+                    <p id="keyDecision" style="color:#fbcfe8">...Awaiting Decision...</p>
+                </div>
+            </div>
+
+            <!-- Strategy -->
+            <div class="glass-panel">
+                <h2>[02] STRATEGIC GOALS</h2>
+
+                <h4 style="color:#fbbf24; margin-bottom: 12px; font-family:var(--font-mono); font-size:0.85rem">>
+                    SHORT_TERM_PROTOCOLS</h4>
+                <ul id="shortGoalsList" style="margin-bottom: 24px;">
+                    <li class="goal-item short-goal">Loading...</li>
+                </ul>
+
+                <h4
+                    style="color:var(--neon-blue); margin-bottom: 12px; font-family:var(--font-mono); font-size:0.85rem">
+                    > MACRO_OBJECTIVES</h4>
+                <ul id="longGoalsList">
+                    <li class="goal-item">Loading...</li>
+                </ul>
+            </div>
+
+            <!-- Actions -->
+            <div class="glass-panel" style="grid-column: 1 / -1;">
+                <h2>[03] LIVE EXECUTIONS</h2>
+                <ul id="actionsList"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; flex-direction: row;">
+                    <li class="action-item">NO EXECUTIONS LOGGED.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Col: The Brain Chat -->
+        <div class="glass-panel chat-panel">
+            <h2>[04] NEURAL LINK (CHAT)</h2>
+            <div class="chat-messages" id="chatMessages">
+                <div class="msg msg-brain">NEURAL LINK ESTABLISHED.<br />I am NOOGH. How may I direct the system?</div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">BRAIN IS PROCESSING...</div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Transmit direct thought/command..."
+                    autocomplete="off">
+                <button class="chat-send" id="chatSendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.port && window.location.port !== '8003' ? `http://${window.location.hostname}:8003` : '';
+
+        // --- Live Board Subsystem ---
+        async function fetchSystemState() {
+            try {
+                const res = await fetch(`${API_BASE}/api/state`);
+                const data = await res.json();
+
+                document.getElementById('valBeliefs').innerText = data.total_beliefs;
+                if (data.cycle_data && data.cycle_data.synthesis) {
+                    let s = data.cycle_data.synthesis;
+                    document.getElementById('valScore').innerText = s.overall_score || '--';
+                    document.getElementById('selfInsight').innerText = s.self_insight || 'NO INSIGHT.';
+                    document.getElementById('keyDecision').innerText = s.key_decision || 'IDLE.';
+                }
+
+                if (data.goals) {
+                    const ulLong = document.getElementById('longGoalsList');
+                    ulLong.innerHTML = '';
+                    (data.goals.long_term || []).forEach(g => {
+                        let text = typeof g === 'string' ? g : g.description;
+                        ulLong.innerHTML += `<li class="goal-item">${text}</li>`;
+                    });
+
+                    const ulShort = document.getElementById('shortGoalsList');
+                    ulShort.innerHTML = '';
+                    (data.goals.short_term || []).forEach(g => {
+                        let text = typeof g === 'string' ? g : g.description;
+                        ulShort.innerHTML += `<li class="goal-item short-goal">${text}</li>`;
+                    });
+                }
+
+                if (data.recent_actions && data.recent_actions.length > 0) {
+                    const ulActions = document.getElementById('actionsList');
+                    ulActions.innerHTML = '';
+                    data.recent_actions.forEach(a => {
+                        let tool = a.action_planned?.tool_name || 'UNKNOWN';
+                        let decision = a.trigger_decision || 'N/A';
+                        let timeStr = a.timestamp || '';
+
+                        ulActions.innerHTML += `
+                            <li class="action-item">
+                                <strong>EXE: ${tool}</strong><br/>
+                                <span>${decision}</span>
+                                <div class="action-meta">TS: ${timeStr}</div>
+                            </li>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("Telemetry failure:", err);
+            }
+        }
+
+        fetchSystemState();
+        setInterval(fetchSystemState, 5000);
+
+        // --- Neural Link Chat Subsystem ---
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        function addMessage(text, isUser) {
+            const div = document.createElement('div');
+            div.className = `msg ${isUser ? 'msg-user' : 'msg-brain'}`;
+            // replace newlines with <br> for formatting
+            div.innerHTML = text.replace(/\n/g, '<br/>');
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, true);
+            chatInput.value = '';
+
+            typingIndicator.style.display = 'block';
+            chatSendBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP Status ${res.status}`);
+                }
+                const data = await res.json();
+                typingIndicator.style.display = 'none';
+                addMessage(data.reply, false);
+            } catch (e) {
+                typingIndicator.style.display = 'none';
+                addMessage(`[CRITICAL ERROR] Neural Link Disconnected. Details: ${e.message}`, false);
+                console.error("Chat Error:", e);
+            }
+            chatSendBtn.disabled = false;
+            chatInput.focus();
+        }
+
+        chatSendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+
+</html>

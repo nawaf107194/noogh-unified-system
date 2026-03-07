@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-02-23T23:42:27.390084",
+  "total_agents": 12,
+  "running": [],
+  "stopped": [
+    {
+      "name": "HealthMonitorAgent",
+      "role": "health_monitor",
+      "file": "agents/health_monitor_agent.py"
+    },
+    {
+      "name": "LogAnalyzerAgent",
+      "role": "log_analyzer",
+      "file": "agents/log_analyzer_agent.py"
+    },
+    {
+      "name": "WebResearchAgent",
+      "role": "web_researcher",
+      "file": "agents/web_researcher_agent.py"
+    },
+    {
+      "name": "DependencyAuditorAgent",
+      "role": "dependency_auditor",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/dependency_auditor_agent.py"
+    },
+    {
+      "name": "TestRunnerAgent",
+      "role": "test_runner",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/test_runner_agent.py"
+    },
+    {
+      "name": "PerformanceProfilerAgent",
+      "role": "performance_profiler",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/performance_profiler_agent.py"
+    },
+    {
+      "name": "BackupAgentAgent",
+      "role": "backup_agent",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/backup_agent_agent.py"
+    },
+    {
+      "name": "PipelineOptimizerAgent",
+      "role": "pipeline_optimizer",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/pipeline_optimizer_agent.py"
+    },
+    {
+      "name": "TikTokAuditorAgent",
+      "role": "tiktok_auditor",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/tiktok_auditor_agent.py"
+    },
+    {
+      "name": "RapidPrototypingAgent",
+      "role": "rapid_prototyping",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/rapid_prototyping_agent.py"
+    },
+    {
+      "name": "SecurityAuditAgent",
+      "role": "security_auditor",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/security_audit_agent.py"
+    },
+    {
+      "name": "InnovationPhysicsEducatorAgent1771804384",
+      "role": "autonomous_creation",
+      "file": "/home/noogh/projects/noogh_unified_system/src/agents/physics_educator_agent_1771804384.py"
+    }
+  ],
+  "missing_files": [],
+  "errors": []
+}

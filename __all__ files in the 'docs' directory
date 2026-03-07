@@ -1,0 +1,48 @@
+# Renaming Files
+
+import os
+
+# Define the base path for the module
+module_path = 'docs'
+
+# List of current file names
+current_files = [
+    '__init__.py',
+    'architecture_1771676467.py',
+    'config_1771657897.py',
+    'architecture_1771892787.py',
+    'architecture.py',
+    'architecture_1771280944.py',
+    'config.py',
+    'architecture_1772061210.py',
+    'tests/test_config_innovation_1771816813.py',
+    'tests/test_architecture_1771280944_innovation_1771916399.py',
+    'tests/test_architecture_1771892787.py',
+    'tests/test_architecture_1771280944_innovation_1771674791.py',
+    'tests/test_config_1771657897_innovation_1772125161.py',
+    'tests/test_architecture_1771280944.py',
+    'tests/test_architecture_1771280944_innovation_1772251398.py'
+]
+
+# Define a mapping from old file names to new file names
+file_mapping = {
+    '__init__.py': '__init__.py',  # This remains unchanged
+    'architecture_1771676467.py': 'architecture_api.py',
+    'config_1771657897.py': 'configuration.py',
+    'architecture_1771892787.py': 'architecture_service.py',
+    'architecture.py': 'main_architecture.py',
+    'architecture_1771280944.py': 'auxiliary_architecture.py',
+    'config.py': 'singleton_config.py',
+    'architecture_1772061210.py': 'advanced_architecture.py',
+    'tests/test_config_innovation_1771816813.py': 'tests/test_configuration_innovation.py',
+    'tests/test_architecture_1771280944_innovation_1771916399.py': 'tests/test_auxiliary_architecture_innovation.py',
+    'tests/test_architecture_1771892787.py': 'tests/test_advanced_architecture.py',
+    'tests/test_architecture_1771280944_innovation_1771674791.py': 'tests/test_main_architecture_innovation.py',
+    'tests/test_config_1771657897_innovation_1772125161.py': 'tests/test_singleton_config_innovation.py',
+    'tests/test_architecture_1771280944.py': 'tests/test_auxiliary_architecture.py',
+    'tests/test_architecture_1771280944_innovation_1772251398.py': 'tests/test_auxiliary_architecture_innovation.py'
+}
+
+# Rename the files
+for old_name, new_name in file_mapping.items():
+    os.rename(os.path.join(module_path, old_name), os.path.join(module_path, new_name))
