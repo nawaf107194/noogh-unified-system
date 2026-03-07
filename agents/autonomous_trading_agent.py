@@ -1695,7 +1695,7 @@ P&L: {trade['pnl_pct']:+.2f}%
         self._reset_daily_stats()
 
         # Get current equity (for percentage calculations)
-        current_equity = self.paper_engine.balance
+        current_equity = self.tracker.active_balance if self.mode in ['hybrid', 'live', 'safe-hybrid'] else self.paper_engine.balance
         max_daily_loss = current_equity * self.max_daily_loss_pct
 
         # Check daily loss limit
