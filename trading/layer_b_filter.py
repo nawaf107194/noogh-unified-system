@@ -6,11 +6,18 @@ import os
 MODEL_PATH = "/home/noogh/projects/noogh_unified_system/src/data/layer_b_model.json"
 
 # Load once at startup
-with open(MODEL_PATH, "r") as f:
+MODEL = None
+try:
+    with open(MODEL_PATH, "r") as f:
     MODEL = json.load(f)
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning(f"layer_b_filter: model load failed ({_e}) - filter disabled")
 
 def statistical_alpha_filter(setup: dict) -> tuple[bool, float, str]:
-    mean = np.array(MODEL["scaler_mean"])
+if MODEL is None:
+        return True, 0.5, "Model not loaded - filter disabled (pass-through)"
+        mean = np.array(MODEL["scaler_mean"])
     scale = np.array(MODEL["scaler_scale"])
     coef = np.array(MODEL["coef"])
     intercept = MODEL["intercept"]
