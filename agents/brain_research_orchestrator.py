@@ -12,6 +12,7 @@ from pathlib import Path
 # استيراد الوكلاء
 from agents.youtube_research_agent import YouTubeResearchAgent
 from agents.github_research_agent import GitHubResearchAgent
+from agents.arxiv_research_agent import ArxivResearchAgent
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class ResearchTask:
     """مهمة بحث من الدماغ"""
     topic: str
     priority: str  # high, medium, low
-    sources: List[str]  # youtube, github, papers, arxiv
+    sources: List[str]  # youtube, github, arxiv
     context: Optional[str] = None
     created_at: datetime = None
     
@@ -35,9 +36,9 @@ class BrainResearchOrchestrator:
     الموجه الرئيسي: الدماغ يفكر ← يرسل مهام ← الوكلاء ينفذون
     
     Workflow:
-    1. RunPod Brain يحدد topic مهم
+    1. الدماغ المحلي يحدد topic مهم
     2. Orchestrator يوزع على الوكلاء
-    3. كل وكيل يبحث في مصدره
+    3. كل وكيل يبحث في مصدره (YouTube/GitHub/arXiv)
     4. النتائج تُدمج في shared_memory
     5. NeuronFabric يولد neurons جديدة
     """
@@ -45,11 +46,10 @@ class BrainResearchOrchestrator:
     def __init__(self):
         self.youtube_agent = YouTubeResearchAgent()
         self.github_agent = GitHubResearchAgent()
-        # self.papers_agent = PapersResearchAgent()  # TODO
-        # self.arxiv_agent = ArxivResearchAgent()    # TODO
+        self.arxiv_agent = ArxivResearchAgent()
         
         self.results_cache = {}
-        logger.info("🧠 Brain Research Orchestrator initialized")
+        logger.info("🧠 Brain Research Orchestrator initialized (YouTube + GitHub + arXiv)")
 
     async def dispatch_research(self, task: ResearchTask) -> Dict:
         """
@@ -73,20 +73,20 @@ class BrainResearchOrchestrator:
         }
         
         # تشغيل الوكلاء بشكل parallel
-        tasks = []
+        tasks_list = []
         
         if 'youtube' in task.sources and self.youtube_agent.youtube:
-            tasks.append(self._research_youtube(task))
+            tasks_list.append(self._research_youtube(task))
         
         if 'github' in task.sources:
-            tasks.append(self._research_github(task))
+            tasks_list.append(self._research_github(task))
         
-        # if 'papers' in task.sources:
-        #     tasks.append(self._research_papers(task))
+        if 'arxiv' in task.sources:
+            tasks_list.append(self._research_arxiv(task))
         
         # تنفيذ الوكلاء
-        if tasks:
-            source_results = await asyncio.gather(*tasks, return_exceptions=True)
+        if tasks_list:
+            source_results = await asyncio.gather(*tasks_list, return_exceptions=True)
             
             for result in source_results:
                 if isinstance(result, Exception):
@@ -137,6 +137,21 @@ class BrainResearchOrchestrator:
             'data': result
         }
 
+    async def _research_arxiv(self, task: ResearchTask) -> Dict:
+        """arXiv agent"""
+        logger.info(f"📚 arXiv researching: '{task.topic}'")
+        
+        result = self.arxiv_agent.research_topic(task.topic)
+        
+        return {
+            'source': 'arxiv',
+            'papers_found': result.get('papers_found', 0),
+            'top_paper': result.get('top_paper'),
+            'techniques': result.get('techniques_found', []),
+            'insights': [f"[arXiv] {t}" for t in result.get('techniques_found', [])],
+            'data': result
+        }
+
     def _summarize_results(self, sources: Dict) -> Dict:
         """تلخيص نتائج كل المصادر"""
         summary = {
@@ -157,6 +172,12 @@ class BrainResearchOrchestrator:
                 summary['key_themes'].update(data.get('technical_trends', []))
                 if data.get('top_repo'):
                     summary['recommendations'].append(f"Study: {data['top_repo']}")
+                    
+            elif source_name == 'arxiv':
+                summary['total_insights'] += data.get('papers_found', 0)
+                summary['key_themes'].update(data.get('techniques', []))
+                if data.get('top_paper'):
+                    summary['recommendations'].append(f"Read: {data['top_paper']}")
         
         summary['key_themes'] = list(summary['key_themes'])
         
@@ -225,12 +246,12 @@ class BrainResearchOrchestrator:
             orchestrator = BrainResearchOrchestrator()
             result = await orchestrator.research_and_generate(
                 topic="transformer quantization",
-                sources=['youtube', 'github'],
+                sources=['youtube', 'github', 'arxiv'],
                 priority='high'
             )
         """
         if sources is None:
-            sources = ['youtube', 'github']
+            sources = ['youtube', 'github', 'arxiv']
         
         task = ResearchTask(
             topic=topic,
@@ -255,18 +276,18 @@ class BrainResearchOrchestrator:
         }
 
 
-# API للدماغ (RunPod)
+# API للدماغ المحلي
 async def brain_think_and_research(topic: str, 
                                     sources: List[str] = None,
                                     generate_neurons: bool = True) -> Dict:
     """
     واجهة الدماغ الرئيسية.
     
-    الدماغ يستدعي هذه الدالة عندما يريد البحث عن موضوع.
+    الدماغ المحلي يستدعي هذه الدالة عندما يريد البحث عن موضوع.
     
     Args:
         topic: ما يريد الدماغ معرفته
-        sources: ['youtube', 'github', 'papers']
+        sources: ['youtube', 'github', 'arxiv']
         generate_neurons: هل نولد neurons من النتائج؟
     
     Returns:
@@ -275,7 +296,7 @@ async def brain_think_and_research(topic: str,
     Example:
         result = await brain_think_and_research(
             topic="efficient transformer architectures",
-            sources=['youtube', 'github'],
+            sources=['youtube', 'github', 'arxiv'],
             generate_neurons=True
         )
     """
@@ -286,25 +307,6 @@ async def brain_think_and_research(topic: str,
     else:
         task = ResearchTask(topic=topic, priority='high', sources=sources or [])
         return await orchestrator.dispatch_research(task)
-
-
-# Daemon mode for continuous operation
-async def run_orchestrator_daemon():
-    """تشغيل Orchestrator كـ daemon يستمع للمهام"""
-    orchestrator = BrainResearchOrchestrator()
-    
-    logger.info("🧠 Brain Orchestrator Daemon started")
-    logger.info("Waiting for research tasks from RunPod...")
-    
-    # هنا يمكن إضافة queue للاستماع للمهام من RunPod
-    # مثلاً: Redis, RabbitMQ, أو SQLite queue
-    
-    while True:
-        # TODO: Check for new tasks from RunPod
-        # tasks = check_runpod_queue()
-        
-        # للتجربة: مهمة تجريبية كل ساعة
-        await asyncio.sleep(3600)
 
 
 if __name__ == '__main__':
@@ -321,7 +323,7 @@ if __name__ == '__main__':
         
         result = await brain_think_and_research(
             topic=topic,
-            sources=['youtube', 'github'],
+            sources=['youtube', 'github', 'arxiv'],
             generate_neurons=True
         )
         
