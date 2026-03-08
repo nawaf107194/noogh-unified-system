@@ -62,7 +62,7 @@ def main():
             for symbol in symbols:
                 try:
                     # Check for signal
-                    signal = trader.check_signal(symbol)
+                                    signal = trader.check_signal_math(symbol)  # Use quantitative engine (PF 1.12)
 
                     if signal.signal != 'NONE':
                         signals_found += 1
