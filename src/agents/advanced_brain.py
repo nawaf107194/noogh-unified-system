@@ -19,8 +19,10 @@ import json
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from unified_core.core.neuron_fabric import get_neuron_fabric
-from unified_core.knowledge.shared_memory import SharedMemory
+try:
+    from unified_core.core.neuron_fabric import get_neuron_fabric
+except ImportError:
+    get_neuron_fabric = None
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
@@ -33,11 +35,10 @@ RESET = "\033[0m"
 
 class AdvancedBrain:
     """يدمج ويراقب جميع مكونات النظام"""
-    
+
     def __init__(self):
         self.db_path = Path(__file__).parent.parent / 'data' / 'shared_memory.sqlite'
-        self.memory = SharedMemory()
-        self.fabric = get_neuron_fabric()
+        self.fabric = get_neuron_fabric() if get_neuron_fabric else None
         
     def get_system_status(self):
         """عرض حالة النظام الكاملة"""
