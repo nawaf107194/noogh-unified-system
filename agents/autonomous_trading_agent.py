@@ -117,9 +117,12 @@ class PaperTradingEngine:
             pnl = (position['entry_price'] - exit_price) * position['quantity']
             pnl_pct = ((position['entry_price'] - exit_price) / position['entry_price']) * 100
 
+        # BUG 2 FIX: Deduct trading fees (0.05% entry + 0.05% exit = 0.1% round trip)
+        fee = abs(position['quantity'] * position['entry_price']) * 0.001
+        pnl -= fee
+        pnl_pct -= 0.1  # Adjust pnl_pct for 0.1% round trip fees
         position['pnl'] = pnl
         position['pnl_pct'] = pnl_pct
-
         # تحديث الرصيد
         self.balance += pnl
 
