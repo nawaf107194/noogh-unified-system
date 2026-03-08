@@ -5,7 +5,7 @@ import pandas as pd
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Literal, Tuple
 
-from trading.technical_indicators import SignalEngineV2, IndicatorConfig, ScoreWeights, RiskConfig
+from trading.technical_indicators import SignalEngineV2, IndicatorConfig, ScoreWeights, RiskConfig, SignalEngineV3_LiquidityTrap
 
 
 @dataclass
@@ -292,7 +292,7 @@ def backtest_v2(
             macro_slice = df_macro.loc[:ts].copy()
 
             # Generate signal
-            sig = SignalEngineV2.generate_entry_signal(
+                  sig = SignalEngineV3_LiquidityTrap.generate_entry_signal(
                 df_macro=macro_slice,
                 df_micro=micro_slice,
                 cfg=ind_cfg,
