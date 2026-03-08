@@ -1126,6 +1126,52 @@ If the setup is weak, return "signal": "NONE".
             }
         }
 
+    def check_signal_math(self, symbol: str) -> TrapSignal:
+        """
+        Check for entry signal using TrapHybridEngine (quantitative, proven PF 1.12).
+        This is the primary signal source - deterministic, no LLM required.
+        Args:
+            symbol: Trading pair
+        Returns:
+            TrapSignal from mathematical engine
+        """
+        try:
+            if symbol in self.positions:
+                return TrapSignal(
+                    signal='NONE', entry_price=0.0, stop_loss=0.0, quick_tp=0.0, atr=0.0,
+                    timestamp=datetime.now(), reasons=['Already in position']
+                )
+            df = self.get_market_data(symbol, interval='5m', limit=100)
+            if df.empty:
+                return TrapSignal(
+                    signal='NONE', entry_price=0.0, stop_loss=0.0, quick_tp=0.0, atr=0.0,
+                    timestamp=datetime.now(), reasons=['Failed to fetch data']
+                )
+            df_ind = self.engine.compute_indicators(df)
+            signal = self.engine.generate_signal(df_ind)
+            if signal.signal != 'NONE':
+                logger.info(f"📊 Math Signal: {signal.signal} {symbol} @ ${signal.entry_price:.2f}")
+                logger.info(f"   SL: ${signal.stop_loss:.2f} | TP1: ${signal.quick_tp:.2f} | ATR: {signal.atr:.2f}")
+                logger.info(f"   Reasons: {', '.join(signal.reasons)}")
+                if self._event_bus and signal.signal != 'NONE':
+                    try:
+                        self._event_bus.publish_sync(
+                            StandardEvents.TRADE_SIGNAL,
+                            {'symbol': symbol, 'signal': signal.signal,
+                             'entry_price': signal.entry_price, 'stop_loss': signal.stop_loss,
+                             'quick_tp': signal.quick_tp, 'atr': signal.atr,
+                             'reasons': signal.reasons, 'timestamp': datetime.now().isoformat()},
+                            'trap_live_trader', EventPriority.NORMAL
+                        )
+                    except Exception as e:
+                        logger.debug(f'Failed to publish trade_signal event: {e}')
+            return signal
+        except Exception as e:
+            logger.error(f'Error in check_signal_math: {e}')
+            return TrapSignal(
+                signal='NONE', entry_price=0.0, stop_loss=0.0, quick_tp=0.0, atr=0.0,
+                timestamp=datetime.now(), reasons=[f'Math engine error: {str(e)}']
+            )
 
 # Singleton
 _trader = None
