@@ -362,5 +362,27 @@ else:
 **Next Milestone:** 1 week of successful paper trading → Go live
 
 **Generated:** 2026-02-27
+
+---
+
+## 🔧 Bug Fixes Applied (2026-03-08)
+
+### Fixes Committed:
+- ✅ **BUG 1** (`backtesting_v2.py`): Double cost application fixed — single commission+slippage formula
+- ✅ **BUG 2** (`backtesting_v2.py`): Gap fill simplified to `fill_price = state.stop` (matches vectorized)
+- ✅ **BUG 3** (`technical_indicators.py`): Sweep-based tight SL removed — ATR-based only (`sl_mult=2.0`)
+- ✅ **BUG 4** (`technical_indicators.py`): Macro trend filter removed — doubled signal count
+- ✅ **BUG 5** (`layer_b_filter.py`): Safe model loading with try/except + None guard
+- ✅ **BUG 6** (`backtesting_v2.py`): Switched to `SignalEngineV3_LiquidityTrap` for production parity
+- ✅ **advanced_strategy.py**: Updated to use `SignalEngineV3_LiquidityTrap.generate_entry_signal()` + NEUTRAL signal handling
+- ✅ **trap_live_trader.py**: Added `check_signal_math()` — uses `TrapHybridEngine` directly (deterministic, no LLM dependency)
+- ✅ **start_paper_trading.py**: Updated to use `check_signal_math()` for reliable signal generation
+
+### Current Status (Post-Fix):
+- Paper trading engine: **READY** — uses `TrapHybridEngine` (PF 1.12)
+- Signal method: `check_signal_math()` — quantitative, proven, no LLM required
+- Backtesting: `backtesting_v2.py` corrected, matches vectorized at RRR=2.0
+
+**Updated:** 2026-03-08
 **Version:** 1.0
 **Strategy:** Trap Hybrid (50% Quick TP + 50% Trailing)
