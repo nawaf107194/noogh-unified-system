@@ -1,153 +1,295 @@
+#!/usr/bin/env python3
+"""
+NOOGH AI Tool Scout Agent - FIXED v2
+Scouts for new AI tools via web search and evaluates them.
+Uses only stdlib + shared SQLite DB.
+"""
 import asyncio
 import logging
 import sqlite3
 import json
 import time
-from typing import Optional, List, Dict, Any
-from pathlib import Path
+import re
+import urllib.request
+import urllib.parse
 import sys
 import os
-from dotenv import load_dotenv
+from typing import Optional, List, Dict, Any
+from pathlib import Path
+from datetime import datetime
 
-# Ensure project root is in path
 sys.path.insert(0, "/home/noogh/projects/noogh_unified_system/src")
-load_dotenv("/home/noogh/projects/noogh_unified_system/src/.env")
 
-from tools.openpedia_scraper import OpenPediaScraper
-from unified_core.neural_bridge import NeuralEngineBridge, NeuralRequest
-
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | ai_tool_scout | %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("/home/noogh/projects/noogh_unified_system/src/logs/ai_tool_scout.log"),
+    ],
+)
 logger = logging.getLogger("ai_tool_scout_agent")
+
+DB_PATH = "/home/noogh/projects/noogh_unified_system/src/data/shared_memory.sqlite"
+AI_TOOLS_DB = "/home/noogh/projects/noogh_unified_system/src/data/ai_tools.sqlite"
+
+# Sources to discover AI tools
+SOURCES = [
+    "https://huggingface.co/papers",
+    "https://arxiv.org/search/?searchtype=all&query=AI+agent+tool&start=0",
+    "https://news.ycombinator.com/",
+    "https://www.reddit.com/r/MachineLearning/.json?limit=25",
+]
+
+
+def _fetch(url: str, timeout: int = 12) -> Optional[str]:
+    """Fetch URL content using stdlib only."""
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "NOOGH-Scout/2.0 (compatible; stdlib)"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        logger.warning(f"Fetch failed for {url}: {e}")
+        return None
+
+
+def _ensure_db(db_path: str):
+    """Ensure the AI tools database and table exist."""
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS ai_tools (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            category TEXT DEFAULT 'unknown',
+            description TEXT DEFAULT '',
+            url TEXT DEFAULT '',
+            api_available INTEGER DEFAULT 0,
+            relevance_score REAL DEFAULT 0.5,
+            status TEXT DEFAULT 'discovered',
+            integration_priority TEXT DEFAULT 'low',
+            suggested_agent TEXT DEFAULT '',
+            discovered_at TEXT,
+            evaluated_at TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+
+def _db_inject(db_path: str, tool: Dict[str, Any]):
+    """Insert or update a tool in the database."""
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute('''
+            INSERT INTO ai_tools (name, category, description, url, api_available,
+                                  relevance_score, status, discovered_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'discovered', ?)
+            ON CONFLICT(name) DO UPDATE SET
+                description = excluded.description,
+                relevance_score = MAX(relevance_score, excluded.relevance_score)
+        ''', (
+            tool.get("name", ""),
+            tool.get("category", "unknown"),
+            tool.get("description", ""),
+            tool.get("url", ""),
+            1 if tool.get("api_available") else 0,
+            tool.get("relevance_score", 0.5),
+            datetime.utcnow().isoformat(),
+        ))
+        conn.commit()
+    except Exception as e:
+        logger.error(f"DB inject error for {tool.get('name')}: {e}")
+    finally:
+        conn.close()
+
+
+def _share_finding(name: str, description: str, priority: str):
+    """Write high-priority findings to the shared memory DB for other agents."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS agent_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent TEXT,
+                event_type TEXT,
+                payload TEXT,
+                created_at TEXT
+            )
+        ''')
+        conn.execute(
+            "INSERT INTO agent_events (agent, event_type, payload, created_at) VALUES (?, ?, ?, ?)",
+            (
+                "ai_tool_scout",
+                "new_tool_found",
+                json.dumps({"name": name, "description": description, "priority": priority}),
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Could not share finding to shared_memory: {e}")
+
+
+def _score_tool(name: str, description: str) -> float:
+    """Simple relevance scorer based on keywords."""
+    keywords = [
+        "agent", "llm", "ai", "model", "api", "automation", "tool",
+        "integration", "workflow", "inference", "embedding", "vector",
+        "rag", "pipeline", "reasoning", "multimodal", "language model",
+    ]
+    text = (name + " " + description).lower()
+    hits = sum(1 for kw in keywords if kw in text)
+    return min(1.0, 0.3 + hits * 0.07)
+
+
+def _discover_from_reddit(content: str) -> List[Dict]:
+    """Parse Reddit JSON for AI tool posts."""
+    tools = []
+    try:
+        data = json.loads(content)
+        posts = data.get("data", {}).get("children", [])
+        for post in posts:
+            p = post.get("data", {})
+            title = p.get("title", "")
+            url = p.get("url", "")
+            desc = p.get("selftext", "")[:300]
+            score = _score_tool(title, desc)
+            if score >= 0.4:
+                tools.append({
+                    "name": title[:120],
+                    "category": "reddit_ml",
+                    "description": desc or title,
+                    "url": url,
+                    "api_available": False,
+                    "relevance_score": score,
+                })
+    except Exception as e:
+        logger.warning(f"Reddit parse error: {e}")
+    return tools
+
+
+def _discover_from_html(content: str, source_url: str) -> List[Dict]:
+    """Extract potential tool names/links from HTML."""
+    tools = []
+    # Find <a> tags with text that looks like a tool
+    links = re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>([^<]{5,80})</a>', content)
+    seen = set()
+    for href, text in links:
+        text = re.sub(r'\s+', ' ', text).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        score = _score_tool(text, "")
+        if score >= 0.45:
+            full_url = href if href.startswith("http") else source_url.rstrip("/") + "/" + href.lstrip("/")
+            tools.append({
+                "name": text[:120],
+                "category": "web_discovery",
+                "description": f"Discovered from {source_url}",
+                "url": full_url[:500],
+                "api_available": False,
+                "relevance_score": score,
+            })
+        if len(tools) >= 20:
+            break
+    return tools
+
 
 class AIToolScoutAgent:
     """
-    Agent that autonomously scouts for new AI tools, 
-    evaluates their relevance to NOOGH using the NeuralBridge,
-    and maintains a database of potential integrations.
+    NOOGH AI Tool Scout Agent.
+    Periodically scans web sources for new AI tools,
+    scores them, stores in DB, and notifies the system via shared memory.
     """
-    
-    def __init__(self, neural_bridge: Optional[NeuralEngineBridge] = None):
-        self.neural_bridge = neural_bridge
-        self.db_path = "/home/noogh/projects/noogh_unified_system/src/data/ai_tools.sqlite"
-        self.scraper = OpenPediaScraper(self.db_path)
+
+    def __init__(self):
+        self.db_path = AI_TOOLS_DB
         self._running = False
-        self.scan_interval = 3600 * 24 # Original plan says every 24 hours
+        self.scan_interval = 3600 * 6  # Every 6 hours
+        _ensure_db(self.db_path)
+        logger.info("AIToolScoutAgent initialized.")
+
+    def _discover_tools(self) -> List[Dict]:
+        """Fetch all sources and return discovered tools."""
+        all_tools = []
+        for source in SOURCES:
+            logger.info(f"Scanning source: {source}")
+            content = _fetch(source)
+            if not content:
+                continue
+            if "reddit.com" in source and source.endswith(".json"):
+                tools = _discover_from_reddit(content)
+            else:
+                tools = _discover_from_html(content, source)
+            logger.info(f"  Found {len(tools)} candidates from {source}")
+            all_tools.extend(tools)
+        return all_tools
+
+    def run_scouting_cycle(self) -> Dict:
+        """Run a full discovery + store cycle. Returns summary."""
+        logger.info("\u2705 Starting AI Tool Scouting Cycle...")
+        start = time.time()
+        all_tools = self._discover_tools()
+        high_relevance = [t for t in all_tools if t["relevance_score"] >= 0.65]
+
+        for tool in all_tools:
+            _db_inject(self.db_path, tool)
+
+        # Share high-relevance findings with the rest of NOOGH
+        for tool in high_relevance:
+            _share_finding(tool["name"], tool["description"], "high")
+            logger.info(f"\u2b50 High-relevance tool: {tool['name']} (score={tool['relevance_score']:.2f})")
+
+        elapsed = round(time.time() - start, 1)
+        summary = {
+            "total": len(all_tools),
+            "high_relevance": len(high_relevance),
+            "elapsed": elapsed,
+        }
+        logger.info(f"\u2705 Scout done: {len(all_tools)} tools, {len(high_relevance)} high-relevance in {elapsed}s")
+        return summary
 
     async def start(self):
-        """Starts the periodic scouting loop."""
-        if self._running:
-            return
         self._running = True
-        logger.info("AIToolScoutAgent started.")
-        asyncio.create_task(self._periodic_run())
+        logger.info("AIToolScoutAgent started (async loop).")
+        while self._running:
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self.run_scouting_cycle)
+            except Exception as e:
+                logger.error(f"Scout cycle error: {e}")
+            await asyncio.sleep(self.scan_interval)
 
     def stop(self):
-        """Stops the periodic scouting loop."""
         self._running = False
         logger.info("AIToolScoutAgent stopped.")
 
-    async def _periodic_run(self):
-        """The main loop for the scouting agent."""
-        while self._running:
-            try:
-                await self.run_scouting_cycle()
-            except Exception as e:
-                logger.error(f"Error in AIToolScoutAgent cycle: {e}")
-            await asyncio.sleep(self.scan_interval)
-
-    async def run_scouting_cycle(self):
-        """Runs a discovery and evaluation cycle."""
-        logger.info("🚀 Starting AI Tool Scouting Cycle...")
-        
-        # 1. Discover tools
-        discovered_tools = self.scraper.run_discovery()
-        
-        # 2. Evaluate new or high-relevance tools with NeuralBridge
-        for tool in discovered_tools:
-            if tool["relevance_score"] >= 0.5:
-                await self.deep_evaluate_tool(tool)
-        
-        logger.info("✅ Scouting cycle completed.")
-
-    async def deep_evaluate_tool(self, tool: Dict[str, Any]):
-        """Uses NeuralBridge to evaluate if a tool should be integrated."""
-        if not self.neural_bridge:
-            from unified_core.neural_bridge import get_neural_bridge
-            self.neural_bridge = get_neural_bridge()
-
-        prompt = f"""
-        Analyze this AI tool for integration into the NOOGH Unified System:
-        Tool Name: {tool['name']}
-        Category: {tool['category']}
-        Description: {tool['description']}
-        API Available: {'Yes' if tool['api_available'] else 'No'}
-        Relevance Score (Initial): {tool['relevance_score']}
-        
-        Goal: Determine if NOOGH should create a specialized agent for this tool.
-        Return ONLY a JSON object with:
-        {{
-            "should_integrate": bool,
-            "integration_priority": "high|medium|low",
-            "suggested_agent_name": "string",
-            "proposed_role": "string",
-            "technical_risk": "string"
-        }}
-        """
-        
-        request = NeuralRequest(
-            query=prompt, 
-            urgency=0.5, 
-            require_decision=True,
-            context={"tool_data": tool}
-        )
-        
-        try:
-            response = await self.neural_bridge.think_with_authority(request)
-            if response.success:
-                content = response.content
-                logger.info(f"🧠 Neural Evaluation for {tool['name']} (Raw): {content}")
-                
-                # Robust JSON extraction
-                evaluation = {}
-                if isinstance(content, dict):
-                    evaluation = content
-                else:
-                    try:
-                        import re
-                        match = re.search(r"\{.*\}", str(content), re.DOTALL)
-                        if match:
-                            evaluation = json.loads(match.group())
-                    except Exception as parse_err:
-                        logger.error(f"Failed to parse JSON for {tool['name']}: {parse_err}")
-                
-                if evaluation:
-                    self._update_tool_evaluation(tool["name"], evaluation)
-                else:
-                    logger.warning(f"No valid evaluation JSON found for {tool['name']}")
-        except Exception as e:
-            logger.error(f"Failed to evaluate tool {tool['name']}: {e}")
-
-    def _update_tool_evaluation(self, tool_name: str, evaluation: Dict[str, Any]):
-        """Persists evaluation results to the database."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        try:
-            # We add status 'evaluated' and store findings
-            cursor.execute('''
-                UPDATE ai_tools 
-                SET status = ?, 
-                    relevance_score = CASE WHEN ? = 'high' THEN 0.9 ELSE relevance_score END
-                WHERE name = ?
-            ''', ("evaluated", evaluation.get("integration_priority"), tool_name))
-        except Exception as e:
-            logger.error(f"Error updating evaluation for {tool_name}: {e}")
-        conn.commit()
-        conn.close()
 
 if __name__ == "__main__":
-    # For manual testing
-    import asyncio
-    async def main():
-        logging.basicConfig(level=logging.INFO)
+    import argparse
+
+    p = argparse.ArgumentParser(description="NOOGH AI Tool Scout")
+    p.add_argument("--once", action="store_true", help="Run one cycle and exit")
+    p.add_argument("--report", action="store_true", help="Print DB summary")
+    args = p.parse_args()
+
+    if args.report:
+        _ensure_db(AI_TOOLS_DB)
+        conn = sqlite3.connect(AI_TOOLS_DB)
+        rows = conn.execute("SELECT name, relevance_score, status FROM ai_tools ORDER BY relevance_score DESC LIMIT 20").fetchall()
+        conn.close()
+        print("=== Top AI Tools ===")
+        for r in rows:
+            print(f"  {r[0][:60]:60s} score={r[1]:.2f}  status={r[2]}")
+    else:
         agent = AIToolScoutAgent()
-        await agent.run_scouting_cycle()
-    asyncio.run(main())
+        if args.once:
+            result = agent.run_scouting_cycle()
+            print(json.dumps(result, indent=2))
+        else:
+            asyncio.run(agent.start())
