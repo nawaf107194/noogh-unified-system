@@ -173,7 +173,7 @@ class AdvancedFuturesStrategy:
             # 4. Generate signal using V3
             signal_data = SignalEngineV3_LiquidityTrap.generate_entry_signal(df_1h, df_5m)
 
-                    if not signal_data.get('signal') or signal_data.get('signal') == 'NEUTRAL':
+                if not signal_data.get('signal') or signal_data.get('signal') == 'NEUTRAL':
                 return {
                     'signal': None,
                     'reason': 'No valid entry signal',
