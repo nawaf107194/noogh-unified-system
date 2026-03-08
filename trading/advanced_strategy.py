@@ -9,7 +9,7 @@ from typing import Dict, Optional, List
 import pandas as pd
 import numpy as np
 
-from .technical_indicators import TechnicalIndicatorsV2, SignalEngineV2
+from .technical_indicators import TechnicalIndicatorsV2, SignalEngineV2, SignalEngineV3_LiquidityTrap
 from .trade_tracker import DailyTracker, get_trade_tracker, Trade, TradeStatus
 from .binance_futures import BinanceFuturesManager, get_futures_manager
 
@@ -170,10 +170,10 @@ class AdvancedFuturesStrategy:
             # 3. Handle pullback (Placeholder/Commented out since V2 integrates this differently)
             # You could add custom logic here or rely on the SignalEngineV2
             
-            # 4. Generate signal using V2
-            signal_data = SignalEngineV2.generate_entry_signal(df_1h, df_5m)
+            # 4. Generate signal using V3
+            signal_data = SignalEngineV3_LiquidityTrap.generate_entry_signal(df_1h, df_5m)
 
-            if not signal_data.get('signal'):
+                    if not signal_data.get('signal') or signal_data.get('signal') == 'NEUTRAL':
                 return {
                     'signal': None,
                     'reason': 'No valid entry signal',
@@ -185,7 +185,7 @@ class AdvancedFuturesStrategy:
             current_price = df_5m['close'].iloc[-1]
             quantity = position_size_usdt / current_price
 
-            # 6. Stop Loss & Take Profits are already calculated by V2
+                        # 6. Stop Loss & Take Profits are calculated by V3 SignalEngineV3_LiquidityTrap
             stop_loss = signal_data.get('stop_loss')
             tp_targets = signal_data.get('take_profits')
             
