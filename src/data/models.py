@@ -118,8 +118,8 @@ class Signal(Base):
     
     # Entry levels
     entry_price = Column(Float, nullable=False)
-    sl_price = Column(Float, nullable=False)
-    tp_price = Column(Float, nullable=False)
+    sl_price = Column(Float, nullable=True)  # NULL when signal is skipped
+    tp_price = Column(Float, nullable=True)  # NULL when signal is skipped
     
     # Technical analysis
     technical_score = Column(Float, nullable=False)  # 0-100
