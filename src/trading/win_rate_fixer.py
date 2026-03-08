@@ -3,8 +3,14 @@
 Win Rate Fixer - مصلح Win Rate
 يصلح حساب Win Rate الخاطئ ويحدث الإحصائيات
 
-المشكلة: Win Rate = 0% بينما PnL إيجابي
-الحل: إعادة حساب Win Rate من سجل الصفقات
+يدعم:
+- جدول trades (للتداول الحقيقي)
+- جدول paper_trades (للتداول الورقي)
+
+الاستخدام:
+  python3 trading/win_rate_fixer.py                    # Auto-detect
+  python3 trading/win_rate_fixer.py --table trades     # Live trades
+  python3 trading/win_rate_fixer.py --table paper_trades  # Paper trades
 """
 
 import sys
@@ -12,6 +18,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime
+import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -22,55 +29,140 @@ logger = logging.getLogger(__name__)
 class WinRateFixer:
     """مصلح Win Rate"""
     
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str = None, table_name: str = None):
         if db_path is None:
             db_path = str(Path(__file__).parent.parent / 'data' / 'shared_memory.sqlite')
         
         self.db_path = db_path
+        self.table_name = table_name
         logger.info(f"💾 Database: {db_path}")
     
-    def analyze_trades(self) -> dict:
-        """تحليل الصفقات وحساب الإحصائيات الصحيحة"""
+    def detect_trades_table(self) -> str:
+        """كشف جدول الصفقات تلقائياً"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
-            # Check if trades table exists
             cursor.execute("""
                 SELECT name FROM sqlite_master 
-                WHERE type='table' AND name='trades'
+                WHERE type='table' AND (name='trades' OR name='paper_trades')
             """)
             
-            if not cursor.fetchone():
-                logger.warning("⚠️  No 'trades' table found")
+            tables = [row[0] for row in cursor.fetchall()]
+            
+            if 'paper_trades' in tables:
+                logger.info("✅ Found 'paper_trades' table")
+                return 'paper_trades'
+            elif 'trades' in tables:
+                logger.info("✅ Found 'trades' table")
+                return 'trades'
+            else:
+                logger.warning("⚠️  No trades or paper_trades table found")
+                return None
+        finally:
+            conn.close()
+    
+    def get_table_columns(self, table_name: str) -> list:
+        """جلب أعمدة الجدول"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+            return columns
+        finally:
+            conn.close()
+    
+    def analyze_trades(self, table_name: str = None) -> dict:
+        """تحليل الصفقات وحساب الإحصائيات الصحيحة"""
+        if table_name is None:
+            table_name = self.table_name or self.detect_trades_table()
+        
+        if not table_name:
+            return None
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Get columns
+            columns = self.get_table_columns(table_name)
+            logger.info(f"📋 Columns in {table_name}: {', '.join(columns)}")
+            
+            # Build flexible query based on available columns
+            # Common mappings
+            symbol_col = 'symbol' if 'symbol' in columns else 'pair'
+            side_col = 'side' if 'side' in columns else 'direction'
+            
+            # PnL columns (try multiple variations)
+            pnl_pct_col = None
+            for col in ['pnl_pct', 'pnl_percent', 'profit_pct', 'return_pct']:
+                if col in columns:
+                    pnl_pct_col = col
+                    break
+            
+            pnl_usd_col = None
+            for col in ['pnl_usd', 'pnl', 'profit', 'profit_usd']:
+                if col in columns:
+                    pnl_usd_col = col
+                    break
+            
+            # Exit columns
+            exit_reason_col = 'exit_reason' if 'exit_reason' in columns else 'status'
+            exit_time_col = None
+            for col in ['exit_time', 'closed_at', 'end_time']:
+                if col in columns:
+                    exit_time_col = col
+                    break
+            
+            entry_time_col = None
+            for col in ['entry_time', 'opened_at', 'start_time', 'timestamp']:
+                if col in columns:
+                    entry_time_col = col
+                    break
+            
+            if not pnl_pct_col and not pnl_usd_col:
+                logger.error("❌ No PnL column found")
                 return None
             
-            # Get all trades
-            cursor.execute("""
-                SELECT 
-                    symbol,
-                    side,
-                    pnl_pct,
-                    pnl_usd,
-                    exit_reason,
-                    entry_time,
-                    exit_time
-                FROM trades
-                WHERE exit_time IS NOT NULL
-                ORDER BY exit_time DESC
-            """)
+            # Build query
+            select_cols = [
+                symbol_col,
+                side_col,
+                pnl_pct_col or "0",
+                pnl_usd_col or "0",
+                exit_reason_col if exit_reason_col in columns else "'UNKNOWN'",
+                entry_time_col or "''",
+                exit_time_col or "''"
+            ]
             
+            query = f"""
+                SELECT {', '.join(select_cols)}
+                FROM {table_name}
+            """
+            
+            # Add WHERE clause if exit_time exists
+            if exit_time_col:
+                query += f" WHERE {exit_time_col} IS NOT NULL"
+            
+            query += f" ORDER BY {entry_time_col or 'rowid'} DESC"
+            
+            logger.info(f"🔍 Query: {query}")
+            cursor.execute(query)
             trades = cursor.fetchall()
             
             if not trades:
-                logger.warning("⚠️  No closed trades found")
+                logger.warning(f"⚠️  No closed trades found in {table_name}")
                 return None
+            
+            logger.info(f"📊 Found {len(trades)} trades")
             
             # Calculate statistics
             total_trades = len(trades)
-            winning_trades = [t for t in trades if t[2] > 0]  # pnl_pct > 0
-            losing_trades = [t for t in trades if t[2] < 0]
-            breakeven_trades = [t for t in trades if t[2] == 0]
+            winning_trades = [t for t in trades if float(t[2] or 0) > 0]
+            losing_trades = [t for t in trades if float(t[2] or 0) < 0]
+            breakeven_trades = [t for t in trades if float(t[2] or 0) == 0]
             
             total_wins = len(winning_trades)
             total_losses = len(losing_trades)
@@ -78,16 +170,17 @@ class WinRateFixer:
             
             win_rate = (total_wins / total_trades * 100) if total_trades > 0 else 0
             
-            total_pnl_usd = sum(t[3] for t in trades if t[3] is not None)
-            avg_win = sum(t[3] for t in winning_trades if t[3]) / total_wins if total_wins > 0 else 0
-            avg_loss = sum(t[3] for t in losing_trades if t[3]) / total_losses if total_losses > 0 else 0
+            total_pnl_usd = sum(float(t[3] or 0) for t in trades)
+            avg_win = sum(float(t[3] or 0) for t in winning_trades) / total_wins if total_wins > 0 else 0
+            avg_loss = sum(float(t[3] or 0) for t in losing_trades) / total_losses if total_losses > 0 else 0
             
             # Profit factor
-            total_win_usd = sum(t[3] for t in winning_trades if t[3])
-            total_loss_usd = abs(sum(t[3] for t in losing_trades if t[3]))
+            total_win_usd = sum(float(t[3] or 0) for t in winning_trades)
+            total_loss_usd = abs(sum(float(t[3] or 0) for t in losing_trades))
             profit_factor = total_win_usd / total_loss_usd if total_loss_usd > 0 else 0
             
             stats = {
+                'table_name': table_name,
                 'total_trades': total_trades,
                 'winning_trades': total_wins,
                 'losing_trades': total_losses,
@@ -102,6 +195,11 @@ class WinRateFixer:
             
             return stats
             
+        except Exception as e:
+            logger.error(f"❌ Error analyzing trades: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
         finally:
             conn.close()
     
@@ -112,20 +210,23 @@ class WinRateFixer:
         
         try:
             # Update or insert trading stats belief
-            trading_stats_key = 'system:trading_stats'
+            trading_stats_key = f"system:trading_stats_{stats['table_name']}"
+            
+            value_dict = {
+                'table': stats['table_name'],
+                'total_trades': stats['total_trades'],
+                'win_rate': stats['win_rate'],
+                'total_pnl_usd': stats['total_pnl_usd'],
+                'profit_factor': stats['profit_factor'],
+                'updated_at': datetime.now().isoformat()
+            }
             
             cursor.execute("""
                 INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at)
                 VALUES (?, ?, ?, ?)
             """, (
                 trading_stats_key,
-                str({
-                    'total_trades': stats['total_trades'],
-                    'win_rate': stats['win_rate'],
-                    'total_pnl_usd': stats['total_pnl_usd'],
-                    'profit_factor': stats['profit_factor'],
-                    'updated_at': datetime.now().isoformat()
-                }),
+                json.dumps(value_dict),
                 0.99,
                 datetime.now().isoformat()
             ))
@@ -139,7 +240,7 @@ class WinRateFixer:
     def print_report(self, stats: dict):
         """طباعة التقرير"""
         print(f"\n{'='*80}")
-        print("📊 TRADING STATISTICS REPORT")
+        print(f"📊 TRADING STATISTICS REPORT - {stats['table_name'].upper()}")
         print(f"{'='*80}\n")
         
         print(f"Total Trades       : {stats['total_trades']:,}")
@@ -159,6 +260,8 @@ class WinRateFixer:
         
         for i, trade in enumerate(stats['recent_5'], 1):
             symbol, side, pnl_pct, pnl_usd, reason, entry, exit = trade
+            pnl_pct = float(pnl_pct or 0)
+            pnl_usd = float(pnl_usd or 0)
             status = '🟢' if pnl_pct > 0 else '🔴' if pnl_pct < 0 else '⚪'
             print(f"{i}. {status} {symbol} {side} | {pnl_pct:+.2f}% (${pnl_usd:+.2f}) | {reason}")
         
@@ -189,10 +292,12 @@ def main():
     
     parser = argparse.ArgumentParser(description='Fix Win Rate calculation')
     parser.add_argument('--db', type=str, help='Database path')
+    parser.add_argument('--table', type=str, choices=['trades', 'paper_trades'], 
+                        help='Trades table name (auto-detect if not specified)')
     
     args = parser.parse_args()
     
-    fixer = WinRateFixer(db_path=args.db)
+    fixer = WinRateFixer(db_path=args.db, table_name=args.table)
     fixer.run()
 
 
