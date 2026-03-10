@@ -28,18 +28,158 @@ import logging
 import hashlib
 import urllib.request
 import urllib.parse
+import functools
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger("brain_tools")
 
+# ─── AMLA Pre-Audit Integration ──────────────────────────────────
+try:
+    from unified_core.core.amla_enforcer import enforce_amla, AMLAEnforcementError
+    AMLA_AVAILABLE = True
+except ImportError:
+    logger.warning("🚨 AMLA not available - pre-audit disabled")
+    AMLA_AVAILABLE = False
+
+# ─── Rate Limiting Integration ────────────────────────────────────
+try:
+    from unified_core.integration.security_hardening import RateLimiter
+    _rate_limiter = RateLimiter(custom_limits={
+        "execute_command": (10, 0.5),    # 10 burst, 1 per 2 seconds
+        "execute_python": (5, 0.2),      # 5 burst, 1 per 5 seconds
+        "write_file": (20, 2.0),         # 20 burst, 2 per second
+        "process_control": (5, 0.5),     # 5 burst, 1 per 2 seconds
+        "db_modify": (30, 3.0),          # 30 burst, 3 per second
+    })
+    RATE_LIMITER_AVAILABLE = True
+    logger.info("✅ Rate limiter initialized for brain_tools")
+except ImportError:
+    logger.warning("⚠️  Rate limiter not available")
+    RATE_LIMITER_AVAILABLE = False
+    _rate_limiter = None
+
+# ─── Emergency Stop Integration ───────────────────────────────────
+try:
+    from unified_core.core.emergency_stop import check_emergency_stop
+    EMERGENCY_STOP_AVAILABLE = True
+    logger.info("✅ Emergency stop system initialized")
+except ImportError:
+    logger.warning("⚠️  Emergency stop not available")
+    EMERGENCY_STOP_AVAILABLE = False
+
 # ─── المسارات الأساسية ────────────────────────────────────────
-SRC     = "/home/noogh/projects/noogh_unified_system/src"
+# ─── المسارات الأساسية ────────────────────────────────────────
+SRC = str(Path(__file__).resolve().parent.parent)
 DB_PATH = f"{SRC}/data/shared_memory.sqlite"
-VENV_PY = f"{SRC}/.venv/bin/python3"
+VENV_PY = f"{SRC}/.noogh_venv/bin/python3"
 NOOGH_HOME = "/home/noogh/.noogh"
 AUDIT_LOG  = f"{SRC}/logs/brain_tool_audit.log"
+
+# ─── AMLA Pre-Audit Decorator ────────────────────────────────
+def require_amla_preaudit(impact: float = 0.7):
+    """
+    Decorator يطبق AMLA pre-audit قبل تنفيذ أي أداة خطيرة.
+
+    Args:
+        impact: مستوى التأثير المحتمل (0.0 - 1.0)
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # ═══ LAYER 0: Emergency Stop (Highest Priority) ═══
+            if EMERGENCY_STOP_AVAILABLE:
+                is_blocked, reason = check_emergency_stop(func.__name__)
+                if is_blocked:
+                    return {
+                        "success": False,
+                        "blocked": True,
+                        "error": reason,
+                        "emergency_stop": True,
+                        "tool": func.__name__
+                    }
+
+            # ═══ LAYER 1: Rate Limiting ═══
+            if RATE_LIMITER_AVAILABLE and _rate_limiter:
+                # Map function to rate limit resource
+                resource_map = {
+                    "execute_command": "execute_command",
+                    "execute_python": "execute_python",
+                    "write_file": "write_file",
+                    "service_control": "process_control",
+                    "process_kill": "process_control",
+                    "process_start": "process_control",
+                    "db_query": "db_modify",
+                    "db_inject_belief": "db_modify",
+                    "update_env_var": "write_file",
+                    "update_json_config": "write_file",
+                }
+
+                resource = resource_map.get(func.__name__, None)
+                if resource and not _rate_limiter.allow(resource):
+                    logger.warning(f"⏱️ Rate limited: {func.__name__}")
+                    return {
+                        "success": False,
+                        "blocked": True,
+                        "error": f"⏱️ Rate limit exceeded for {func.__name__} - try again later",
+                        "tool": func.__name__,
+                        "reason": "rate_limit"
+                    }
+
+            # ═══ LAYER 2: AMLA Pre-Audit ═══
+            if not AMLA_AVAILABLE:
+                # إذا AMLA غير متاح، نحظر التنفيذ (fail-safe)
+                logger.critical(f"🚨 AMLA unavailable - blocking {func.__name__}")
+                return {
+                    "success": False,
+                    "blocked": True,
+                    "error": f"🛡️ AMLA pre-audit required but unavailable - operation blocked",
+                    "tool": func.__name__
+                }
+
+            try:
+                # طلب موافقة AMLA المسبقة
+                audit_result = enforce_amla(
+                    action_type=f"brain_tool.{func.__name__}",
+                    params={
+                        "args": [str(a)[:100] for a in args],
+                        "kwargs": {k: str(v)[:100] for k, v in kwargs.items()}
+                    },
+                    beliefs=[],
+                    confidence=1.0,
+                    impact=impact,
+                    auto_acknowledge=False
+                )
+
+                logger.info(f"🛡️ AMLA approved: {func.__name__} [{audit_result.verdict.value}]")
+
+            except AMLAEnforcementError as e:
+                # AMLA حظر العملية
+                logger.warning(f"🚫 AMLA blocked: {func.__name__} - {e}")
+                return {
+                    "success": False,
+                    "blocked": True,
+                    "error": f"🛡️ AMLA blocked: {e.audit_result.blocked_reason}",
+                    "tool": func.__name__,
+                    "verdict": e.verdict.value
+                }
+            except Exception as e:
+                # خطأ في AMLA - نحظر التنفيذ (fail-safe)
+                logger.error(f"🚨 AMLA error for {func.__name__}: {e}")
+                return {
+                    "success": False,
+                    "blocked": True,
+                    "error": f"🛡️ AMLA audit error - operation blocked: {e}",
+                    "tool": func.__name__
+                }
+
+            # AMLA وافق - تنفيذ الأداة
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
 
 # ─── سجل التدقيق ─────────────────────────────────────────────
 def _audit(tool: str, args: dict, result: str, success: bool):
@@ -95,6 +235,7 @@ def read_file(path: str, encoding: str = "utf-8", max_bytes: int = 50000) -> Dic
         return {"success": False, "error": str(e)}
 
 
+@require_amla_preaudit(impact=0.8)  # High impact - file system modifications
 def write_file(path: str, content: str, mode: str = "w", backup: bool = True) -> Dict:
     """
     يكتب إلى أي ملف. ينشئ المجلدات تلقائياً.
@@ -232,6 +373,7 @@ def search_in_files(directory: str, query: str, ext: str = ".py",
 # 🖥️  تنفيذ الأوامر
 # ══════════════════════════════════════════════════════════════
 
+@require_amla_preaudit(impact=0.9)  # High impact - command execution
 def execute_command(cmd: str, cwd: str = SRC, timeout: int = 30,
                     capture: bool = True, force: bool = False) -> Dict:
     """
@@ -247,7 +389,7 @@ def execute_command(cmd: str, cwd: str = SRC, timeout: int = 30,
     Returns:
         {"success": bool, "stdout": str, "stderr": str, "exit_code": int}
     """
-    # 🛡️ Command validation
+    # 🛡️ Command validation — CRITICAL SECURITY
     try:
         from unified_core.integration.security_hardening import get_command_validator
         validator = get_command_validator()
@@ -260,9 +402,17 @@ def execute_command(cmd: str, cwd: str = SRC, timeout: int = 30,
             elif not force:
                 # Whitelist miss — can override with force=True
                 _audit("execute_cmd", {"cmd": cmd[:100]}, f"BLOCKED(whitelist): {reason}", False)
-                return {"success": False, "blocked": True, "error": f"🛡️ أمر غير معروف: {reason}", "command": cmd}
-    except ImportError:
-        pass
+                return {"success": False, "blocked": True, "error": f"🛡️ أمر غير معروف: {reason}\nاستخدم force=True للتجاوز أو اتصل بالمسؤول", "command": cmd}
+    except ImportError as e:
+        # CRITICAL: If validator cannot load, BLOCK execution (fail-safe)
+        logger.critical(f"🚨 Security module failed to load: {e} — BLOCKING command execution")
+        _audit("execute_cmd", {"cmd": cmd[:100]}, f"BLOCKED: validator unavailable", False)
+        return {"success": False, "blocked": True, "error": "🛡️ نظام الأمان غير متاح - الأمر محظور", "command": cmd}
+    except Exception as e:
+        # Any other error — block execution
+        logger.error(f"Command validation error: {e}")
+        _audit("execute_cmd", {"cmd": cmd[:100]}, f"BLOCKED: validation error", False)
+        return {"success": False, "blocked": True, "error": f"🛡️ خطأ في التحقق: {e}", "command": cmd}
 
     try:
         r = subprocess.run(
@@ -287,6 +437,7 @@ def execute_command(cmd: str, cwd: str = SRC, timeout: int = 30,
         return {"success": False, "error": str(e), "command": cmd}
 
 
+@require_amla_preaudit(impact=0.95)  # Very high impact - arbitrary code execution
 def execute_python(code: str, timeout: int = 30) -> Dict:
     """
     ينفذ كود Python مباشرة مع تحقق أمني.
@@ -334,6 +485,7 @@ def execute_python(code: str, timeout: int = 30) -> Dict:
 # ⚙️  التحكم بالخدمات
 # ══════════════════════════════════════════════════════════════
 
+@require_amla_preaudit(impact=0.85)  # High impact - system service control
 def service_control(name: str, action: str) -> Dict:
     """
     يتحكم بخدمة systemd.
@@ -410,6 +562,7 @@ def get_all_services_status() -> Dict:
 # 🗃️  قاعدة البيانات
 # ══════════════════════════════════════════════════════════════
 
+@require_amla_preaudit(impact=0.75)  # Medium-high impact - database modifications
 def db_query(sql: str, params: tuple = (), db: str = DB_PATH) -> Dict:
     """
     ينفذ استعلام SQL على ذاكرة NOOGH.
@@ -512,6 +665,7 @@ def read_config(path: str) -> Dict:
         return {"success": False, "error": str(e)}
 
 
+@require_amla_preaudit(impact=0.8)  # High impact - environment variable modification
 def update_env_var(key: str, value: str, env_file: str = f"{SRC}/.env") -> Dict:
     """
     يضيف أو يحدث متغير في ملف .env.
@@ -555,6 +709,7 @@ def update_env_var(key: str, value: str, env_file: str = f"{SRC}/.env") -> Dict:
         return {"success": False, "error": str(e)}
 
 
+@require_amla_preaudit(impact=0.75)  # Medium-high impact - configuration modification
 def update_json_config(path: str, updates: Dict) -> Dict:
     """
     يحدث مفاتيح في ملف JSON.
@@ -705,6 +860,7 @@ def process_list(filter_name: str = "") -> Dict:
     return {"success": r["success"], "output": r["stdout"]}
 
 
+@require_amla_preaudit(impact=0.85)  # High impact - process termination
 def process_kill(pid: int, signal: str = "15") -> Dict:
     """
     يوقف عملية مع تحقق أمني.
@@ -732,6 +888,7 @@ def process_kill(pid: int, signal: str = "15") -> Dict:
     return result
 
 
+@require_amla_preaudit(impact=0.9)  # Very high impact - process creation
 def process_start(script: str, args: List[str] = None, log_file: str = None) -> Dict:
     """
     يُشغّل عملية Python في الخلفية.

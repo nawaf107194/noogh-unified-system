@@ -9,20 +9,25 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 
-sys.path.insert(0, "/home/noogh/projects/noogh_unified_system/src")
+# Dynamic source path detection
+SRC = str(Path(__file__).resolve().parent.parent)
+sys.path.insert(0, SRC)
+
+LOG_DIR = os.path.join(SRC, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | autonomous_learner | %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("/home/noogh/projects/noogh_unified_system/src/logs/autonomous_learner.log"),
+        logging.FileHandler(os.path.join(LOG_DIR, "autonomous_learner.log")),
     ],
 )
 logger = logging.getLogger("autonomous_learner")
 
 HOME = str(Path.home())
-DB_PATH = "/home/noogh/projects/noogh_unified_system/src/data/shared_memory.sqlite"
+DB_PATH = os.path.join(SRC, "data/shared_memory.sqlite")
 
 
 def _fetch(url: str, timeout: int = 12) -> Optional[str]:

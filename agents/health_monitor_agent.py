@@ -16,20 +16,24 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any
 
-sys.path.insert(0, "/home/noogh/projects/noogh_unified_system/src")
+# Dynamic source path detection
+SRC = str(Path(__file__).resolve().parent.parent)
+sys.path.insert(0, SRC)
+
+LOG_DIR = os.path.join(SRC, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | health_monitor | %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("/home/noogh/projects/noogh_unified_system/src/logs/health_monitor.log"),
+        logging.FileHandler(os.path.join(LOG_DIR, "health_monitor.log")),
     ],
 )
 logger = logging.getLogger("agents.health_monitor")
 
-SRC = "/home/noogh/projects/noogh_unified_system/src"
-DB_PATH = f"{SRC}/data/shared_memory.sqlite"
+DB_PATH = os.path.join(SRC, "data/shared_memory.sqlite")
 
 
 def _get_cpu_percent() -> float:
@@ -242,8 +246,15 @@ if __name__ == "__main__":
 
     agent = HealthMonitorAgent()
 
-    if args.loop:
-        agent.run_loop(args.interval)
-    else:
+    if args.report:
         result = agent.run_once()
         print(json.dumps(result, indent=2, default=str))
+    else:
+        # Default to loop mode to keep the process alive in SystemManager
+        interval = args.interval if args.loop else 120  # Use 120s if not specified via --loop
+        while True:
+            try:
+                agent.run_loop(interval)
+            except Exception as e:
+                logger.error(f"Agent loop crash: {e}")
+                time.sleep(30)
