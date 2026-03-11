@@ -4,21 +4,30 @@ NOOGH Master Orchestrator — المنسّق الرئيسي
 
 يربط جميع الأنظمة بطبقة الفهم:
 
-  🎬 autonomous_learner  → يتعلم → يُفهَم → يُحفظ
-  🖥️  server_control     → يراقب → يُفهَم → يتصرف
-  🔍 deep_scanner        → يمسح  → يُفهَم → يُخزَّن
-  🧠 brain_comprehension ← طبقة الفهم المركزية
-  📈 trading_integration → يتداول بوعي + حماية Volatility + ذاكرة تداولية
+  🎬 autonomous_learner      → يتعلم → يُفهَم → يُحفظ
+  🖥️  server_control         → يراقب → يُفهَم → يتصرف
+  🔍 deep_scanner            → يمسح  → يُفهَم → يُخزَّن
+  🧠 brain_comprehension     ← طبقة الفهم المركزية
+  📈 trading_integration    → تداول بوعي + حماية + ذاكرة
+  📊 performance_reporter   → تقرير يومي شامل
+  🎯 strategy_selector      → أفضل استراتيجية لكل Regime
+  🔄 mode_switcher           → Paper ⇄ Live بشروط صارمة
+  🏆 symbol_scorer          → أفضل رموز للتداول
 
-الدورة الرئيسية:
-  كل ساعة:
-    1. تعلم (YouTube + GitHub + arXiv + SO)
-    2. فهم ما تعلمته
-    3. مراقبة النظام
-    4. فهم حالة النظام
-    5. تركيب المعرفة الشاملة
-    6. تداول ذكي (TradingIntegrationSystem → VolatilityGuard → TradingMemoryBridge)
-    7. تحديد الأولويات للدورة القادمة
+تسلسل الدورة:
+  1. تعلم + فهم
+  2. مراقبة + فهم
+  3. جلب سياق التداول (Bridge)
+  4. وكلاء Sovereign
+  5. مسح / تقطير / تطور ذاتي (كل N دورة)
+  6. Symbol Scorer       (كل 6 دورات)
+  7. Strategy Selector   (كل 2 دورة)
+  8. Synthesis
+  9. Trading Cycle
+  10. Mode Switcher      (كل دورة)
+  11. Performance Report  (كل 24 دورة)
+  12. تحديث الأهداف
+  13. تنفيذ القرار
 """
 
 import sys, os, json, time, subprocess, sqlite3, logging, re
@@ -45,12 +54,11 @@ DB_PATH = f"{SRC}/data/shared_memory.sqlite"
 VENV_PY = f"{SRC}/.venv/bin/python3"
 
 
-# ══════════════════════════════════════════════════════════════
-# واجهة الاستيراد المحمي (لا يكسر على خطأ)
-# ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════
+# helpers
+# ══════════════════════════════════════════════════════════
 
 def _safe_import(module_path: str, class_or_fn: str):
-    """يستورد بحماية — يرجع None عند الفشل"""
     try:
         import importlib.util
         spec = importlib.util.spec_from_file_location("_mod", module_path)
@@ -64,7 +72,6 @@ def _safe_import(module_path: str, class_or_fn: str):
 
 def _run_agent_script(script: str, args: List[str] = None,
                       timeout: int = 120) -> Dict:
-    """يشغّل script كعملية فرعية ويلتقط نتيجته"""
     cmd = [VENV_PY, f"{SRC}/{script}"] + (args or [])
     try:
         req_env = os.environ.copy()
@@ -76,7 +83,6 @@ def _run_agent_script(script: str, args: List[str] = None,
         stdout_txt = r.stdout[-3000:]
         if r.returncode != 0 and not stdout_txt.strip():
             stdout_txt = r.stderr[-3000:]
-            
         return {
             "success": r.returncode == 0,
             "stdout": stdout_txt,
@@ -103,7 +109,6 @@ def _db_inject(key: str, data: Any, utility: float = 0.90):
 
 
 def _ask_brain(prompt: str, max_tokens: int = 600) -> str:
-    """يسأل LLM مباشرة"""
     import urllib.request
     VLLM_URL = os.environ.get("NEURAL_ENGINE_URL", "http://localhost:11434")
     MODEL    = os.environ.get("VLLM_MODEL_NAME", "qwen2.5-coder:7b")
@@ -131,104 +136,67 @@ def _ask_brain(prompt: str, max_tokens: int = 600) -> str:
         return ""
 
 
-# ══════════════════════════════════════════════════════════════
-# وحدات الأنظمة المتكاملة
-# ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════
+# وحدات الأنظمة
+# ══════════════════════════════════════════════════════════
 
 class LearningSystem:
-    """نظام التعلم + الفهم"""
-
     def run_and_comprehend(self) -> Dict:
         logger.info("\n" + "─"*55)
         logger.info("🎬 [LEARNING] تعلم من 5 مصادر...")
         logger.info("─"*55)
-
-        r = _run_agent_script("agents/autonomous_learner_agent.py",
-                               ["--once"], timeout=120)
-
-        learned_items = []
+        r = _run_agent_script("agents/autonomous_learner_agent.py", ["--once"], timeout=120)
         tags_seen = set()
         for line in r["stdout"].split("\n"):
             if "Tags:" in line:
                 tags = re.findall(r'[🎬🐙📜🟧📡]\s*\w[\w\s/]+', line)
                 tags_seen.update(tags)
-            if "Injected" in line or "injected" in line or "✅" in line:
-                learned_items.append(line.strip()[:80])
-
         cycle_summary = {
             "timestamp": datetime.now().isoformat(),
             "success": r["success"],
             "tags_learned": list(tags_seen)[:10],
             "output_preview": r["stdout"][-500:],
         }
-
         if r["success"] and tags_seen:
-            logger.info(f"  🧠 فهم {len(tags_seen)} tags مكتسبة...")
-            prompt = f"""أنت NOOGH تعلمت للتو من YouTube/GitHub/arXiv/StackOverflow.
-
-تعلمت هذه المفاهيم: {list(tags_seen)[:8]}
-
-من هذا الـ output:
-{r['stdout'][-800:]}
-
-أجب بـ JSON:
-{{
-  "what_i_learned": "خلاصة ما تعلمته في جملتين",
-  "most_valuable": "أهم شيء تعلمته",
-  "how_to_apply": "كيف أطبق هذا على نفسي الآن",
-  "next_topic": "أهم موضوع يجب أن أتعلمه في الدورة القادمة",
-  "learning_score": 0.0
-}}"""
+            logger.info(f"  🧠 فهم {len(tags_seen)} tags...")
+            prompt = f"""أنت NOOGH تعلمت من YouTube/GitHub/arXiv/SO.
+تعلمت: {list(tags_seen)[:8]}
+Output: {r['stdout'][-800:]}
+أجب JSON: {{"what_i_learned":"","most_valuable":"","how_to_apply":"","next_topic":"","learning_score":0.0}}"""
             response = _ask_brain(prompt)
             understanding = {}
             try:
                 m = re.search(r'\{[\s\S]+\}', response)
-                if m:
-                    understanding = json.loads(m.group())
+                if m: understanding = json.loads(m.group())
             except Exception:
                 understanding = {"raw": response[:200]}
-
-            logger.info(f"  💎 فهمت: {understanding.get('what_i_learned','?')[:60]}")
-            logger.info(f"  🎯 الأهم: {understanding.get('most_valuable','?')[:60]}")
-            logger.info(f"  💡 كيف أطبق: {understanding.get('how_to_apply','?')[:60]}")
-
+            logger.info(f"  💎 {understanding.get('most_valuable','?')[:70]}")
             cycle_summary["understanding"] = understanding
             _db_inject("orchestrator:learning_cycle", cycle_summary, 0.93)
         else:
-            logger.info(f"  ℹ️ لا تعلم جديد في هذه الدورة")
+            logger.info("  ℹ️ لا تعلم جديد")
             _db_inject("orchestrator:learning_cycle", cycle_summary, 0.70)
-
         return cycle_summary
 
 
 class MonitoringSystem:
-    """نظام المراقبة + الفهم"""
-
     def _get_system_snapshot(self) -> Dict:
         snap = {}
-
         r = subprocess.run(
             "systemctl show noogh-agent noogh-neural noogh-gateway "
             "--property=ActiveState,MainPID,MemoryCurrent",
             shell=True, capture_output=True, text=True, timeout=5
         )
         services_raw = r.stdout
-
-        active_count = services_raw.count("ActiveState=active")
-        snap["services_active"] = active_count
+        snap["services_active"] = services_raw.count("ActiveState=active")
         snap["services_raw"]    = services_raw[:400]
-
-        with open("/proc/meminfo") as f:
-            mem = f.read()
+        with open("/proc/meminfo") as f: mem = f.read()
         total = int(re.search(r"MemTotal:\s+(\d+)", mem).group(1))
         avail = int(re.search(r"MemAvailable:\s+(\d+)", mem).group(1))
-        snap["ram_pct"]  = round((total - avail) / total * 100, 1)
-        snap["ram_used_gb"] = round((total-avail)/1024/1024, 1)
-
-        with open("/proc/loadavg") as f:
-            load = f.read().split()
+        snap["ram_pct"]     = round((total - avail) / total * 100, 1)
+        snap["ram_used_gb"] = round((total - avail) / 1024 / 1024, 1)
+        with open("/proc/loadavg") as f: load = f.read().split()
         snap["load_1m"] = float(load[0])
-
         errors = []
         for log_file in ["agent_daemon_live.log", "autonomous_learner.log"]:
             try:
@@ -236,116 +204,68 @@ class MonitoringSystem:
                 if path.exists():
                     lines = path.read_text(errors="ignore").split("\n")
                     errors += [l for l in lines[-50:] if "ERROR" in l][-2:]
-            except Exception:
-                pass
+            except Exception: pass
         snap["recent_errors"] = errors[:4]
         snap["error_count"]   = len(errors)
-
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
+            cur  = conn.cursor()
             cur.execute("SELECT COUNT(*) FROM beliefs")
             snap["beliefs_count"] = cur.fetchone()[0]
             cur.execute("SELECT COUNT(*) FROM observations")
             snap["obs_count"] = cur.fetchone()[0]
             conn.close()
-        except Exception:
-            pass
-
+        except Exception: pass
         return snap
 
     def run_and_comprehend(self) -> Dict:
         logger.info("\n" + "─"*55)
         logger.info("🖥️  [MONITORING] مراقبة + فهم حالة النظام...")
         logger.info("─"*55)
-
         snap = self._get_system_snapshot()
-
         logger.info(
-            f"  📊 خدمات: {snap['services_active']}/3 | "
-            f"RAM: {snap['ram_used_gb']}GB ({snap['ram_pct']}%) | "
-            f"Load: {snap['load_1m']}"
+            f"  📊 {snap['services_active']}/3 | "
+            f"RAM: {snap['ram_used_gb']}GB ({snap['ram_pct']}%) | Load: {snap['load_1m']}"
         )
-        if snap['recent_errors']:
-            logger.warning(f"  ⚠️ أخطاء: {len(snap['recent_errors'])}")
-            for e in snap['recent_errors'][:2]:
-                logger.warning(f"     {e[:80]}")
-
-        prompt = f"""أنت NOOGH تراقب نفسك الآن.
-
-حالة الخدمات ({snap['services_active']}/3 نشطة):
-{snap['services_raw'][:300]}
-
-RAM: {snap['ram_pct']}% ({snap['ram_used_gb']} GB)
-Load: {snap['load_1m']}
-ذاكرتي: {snap.get('beliefs_count','?')} beliefs | {snap.get('obs_count','?')} observations
-أخطاء الآن: {snap['error_count']}
-{chr(10).join(snap['recent_errors'][:2]) if snap['recent_errors'] else 'لا أخطاء'}
-
-قيّم حالتي وأجب بـ JSON:
-{{
-  "status": "healthy|warning|critical",
-  "status_score": 0.0,
-  "biggest_concern": "أكبر مشكلة الآن أو 'none'",
-  "action_needed": true,
-  "action": "ما يجب فعله الآن",
-  "prediction": "ما أتوقع حدوثه خلال ساعة"
-}}"""
-
+        prompt = f"""أنت NOOGH تراقب نفسك.
+خدمات ({snap['services_active']}/3): {snap['services_raw'][:200]}
+RAM: {snap['ram_pct']}% | Load: {snap['load_1m']}
+أخطاء: {snap['error_count']} | {chr(10).join(snap['recent_errors'][:2]) or 'لا أخطاء'}
+أجب JSON: {{"status":"healthy|warning|critical","status_score":0.0,"biggest_concern":"","action_needed":true,"action":"","prediction":""}}"""
         response = _ask_brain(prompt)
         understanding = {}
         try:
             m = re.search(r'\{[\s\S]+\}', response)
-            if m:
-                understanding = json.loads(m.group())
+            if m: understanding = json.loads(m.group())
         except Exception:
             understanding = {"raw": response[:200]}
-
-        logger.info(f"  🩺 الحالة: {understanding.get('status','?')} ({understanding.get('status_score','?')})")
-        logger.info(f"  🔮 توقع: {understanding.get('prediction','?')[:60]}")
-        if understanding.get("action_needed"):
-            logger.info(f"  ⚡ إجراء مطلوب: {understanding.get('action','?')[:60]}")
-
+        logger.info(f"  🩺 {understanding.get('status','?')} | 🔮 {understanding.get('prediction','?')[:50]}")
         result = {"snapshot": snap, "understanding": understanding}
         _db_inject("orchestrator:system_monitoring", result, 0.95)
-
         if understanding.get("status") == "critical":
-            logger.warning("  🚨 النظام في حالة حرجة — تعافٍ ذاتي...")
-            self._self_heal(snap, understanding)
-
+            logger.warning("  🚨 حالة حرجة — تعافٍ ذاتي...")
+            if snap["services_active"] < 3:
+                subprocess.run(
+                    "echo '107194' | sudo -S systemctl restart noogh-agent",
+                    shell=True, capture_output=True, timeout=30
+                )
         return result
-
-    def _self_heal(self, snap: Dict, understanding: Dict):
-        concern = understanding.get("biggest_concern", "")
-        if "noogh-agent" in concern or snap["services_active"] < 3:
-            logger.info("  🔄 محاولة إعادة تشغيل خدمات NOOGH...")
-            subprocess.run(
-                f"echo '107194' | sudo -S systemctl restart noogh-agent",
-                shell=True, capture_output=True, timeout=30
-            )
 
 
 class KnowledgeSynthesizer:
-    """مركب المعرفة — يجمع كل ما فهمه ويستخلص رؤية شاملة وتوجيه استراتيجي بناءً على الأهداف"""
-
     def synthesize(self, learning_result: Dict, monitoring_result: Dict,
                    trading_context: str = "") -> Dict:
         logger.info("\n" + "─"*55)
-        logger.info("🔮 [SYNTHESIS] تركيب المعرفة الشاملة وتوجيه المسار...")
+        logger.info("🔮 [SYNTHESIS] تركيب المعرفة وتوجيه المسار...")
         logger.info("─"*55)
-
-        l_understanding = learning_result.get("understanding", {})
-        m_understanding = monitoring_result.get("understanding", {})
-        m_snap          = monitoring_result.get("snapshot", {})
-
+        l_u = learning_result.get("understanding", {})
+        m_u = monitoring_result.get("understanding", {})
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            
+            cur  = conn.cursor()
             cur.execute("SELECT value FROM beliefs WHERE key='system:strategic_goals'")
-            row = cur.fetchone()
-            strategic_goals_str = row[0] if row else "{'short_term': [], 'long_term': []}"
-            
+            row  = cur.fetchone()
+            goals_str = row[0] if row else "{}"
             cur.execute(
                 "SELECT key, utility_score FROM beliefs "
                 "WHERE key != 'system:strategic_goals' "
@@ -354,75 +274,34 @@ class KnowledgeSynthesizer:
             top_beliefs = [{"key": r[0][:40], "u": round(r[1], 2)} for r in cur.fetchall()]
             conn.close()
         except Exception as e:
-            logger.error(f"  DB Error syntheisizing: {e}")
-            top_beliefs = []
-            strategic_goals_str = "{}"
-
-        trading_section = ""
-        if trading_context:
-            trading_section = f"\n\n📈 سياق التداول:\n{trading_context[:400]}"
-
-        prompt = f"""أنت NOOGH — تقرير الدورة الشاملة وقرار المسار الجديد.
-
-⚠️ أهدافك الاستراتيجية الحاكمة:
-{strategic_goals_str}
-
-ما تعلمته:
-  أهم شيء: {l_understanding.get('most_valuable','لا شيء جديد')}
-  كيف أطبقه: {l_understanding.get('how_to_apply','؟')}
-  الموضوع القادم: {l_understanding.get('next_topic','؟')}
-
-حالة نظامي:
-  الحالة: {m_understanding.get('status','؟')} ({m_understanding.get('status_score','؟')})
-  أكبر مشكلة: {m_understanding.get('biggest_concern','none')}
-  توقع: {m_understanding.get('prediction','؟')}{trading_section}
-
-أهم ما أؤمن به الآن:
-{json.dumps([f"{b['key']} (u={b['u']})" for b in top_beliefs[:5]], ensure_ascii=False)}
-
-الآن: بناءً على "أهدافك الاستراتيجية" بشكل أساسي والمشكلات الحالية:
-1. ما القرارات المحددة التي يجب اتخاذها الآن لتحقيق الأهداف قصيرة الأمد؟
-2. أين تركز جهودك في الساعة القادمة؟
-3. هل تتقدم نحو أهدافك بعيدة المدى بشكل صحيح؟
-
-أجب بـ JSON:
-{{
-  "key_decision": "القرار الأهم",
-  "next_hour_focus": "ما أفعله في الساعة القادمة",
-  "is_evolving_correctly": true,
-  "self_insight": "إدراك ذاتي عميق جديد عن أدائي ومساري",
-  "overall_score": 0.0
-}}"""
-
+            logger.error(f"  DB error: {e}")
+            top_beliefs = []; goals_str = "{}"
+        trading_section = f"\n📈 سياق التداول:\n{trading_context[:400]}" if trading_context else ""
+        prompt = f"""أنت NOOGH — تقرير الدورة وقرار المسار.
+أهدافك: {goals_str}
+أهم ما تعلمته: {l_u.get('most_valuable','لا شيء')}
+حالة النظام: {m_u.get('status','?')} | {m_u.get('biggest_concern','none')}{trading_section}
+أهم ما أؤمن: {[f"{b['key']}(u={b['u']})" for b in top_beliefs[:5]]}
+أجب JSON: {{"key_decision":"","next_hour_focus":"","is_evolving_correctly":true,"self_insight":"","overall_score":0.0}}"""
         response = _ask_brain(prompt, max_tokens=500)
         synthesis = {}
         try:
             m = re.search(r'\{[\s\S]+\}', response)
-            if m:
-                synthesis = json.loads(m.group())
+            if m: synthesis = json.loads(m.group())
         except Exception:
             synthesis = {"raw": response[:200]}
-
-        logger.info(f"  🎯 القرار الاستراتيجي: {synthesis.get('key_decision','?')[:65]}")
-        logger.info(f"  ⏰ التركيز القادم: {synthesis.get('next_hour_focus','?')[:65]}")
-        logger.info(f"  💭 وعي ذاتي: {synthesis.get('self_insight','?')[:65]}")
-        logger.info(f"  📈 تطور نحو الأهداف: {'✅' if synthesis.get('is_evolving_correctly') else '⚠️'}")
-
+        logger.info(f"  🎯 {synthesis.get('key_decision','?')[:65]}")
+        logger.info(f"  ⏰ {synthesis.get('next_hour_focus','?')[:65]}")
+        logger.info(f"  💭 {synthesis.get('self_insight','?')[:65]}")
         _db_inject("orchestrator:synthesis", synthesis, 0.98)
         return synthesis
 
 
-# ══════════════════════════════════════════════════════════════
-# نظام التداول المتكامل
-# ══════════════════════════════════════════════════════════════
-
 class TradingSystem:
-    """يربط TradingIntegrationSystem + VolatilityGuard + TradingMemoryBridge"""
+    """TradingIntegrationSystem + VolatilityGuard + TradingMemoryBridge"""
 
     def __init__(self):
-        self._trading   = None
-        self._bridge    = None
-        self._guard     = None
+        self._trading = self._bridge = self._guard = None
         self._available = False
         self._init_components()
 
@@ -431,149 +310,225 @@ class TradingSystem:
             from agents.trading_integration_system import TradingIntegrationSystem
             from agents.trading_memory_bridge      import TradingMemoryBridge
             from agents.volatility_guard           import get_volatility_guard
-
             self._trading   = TradingIntegrationSystem()
             self._bridge    = TradingMemoryBridge()
             self._guard     = get_volatility_guard()
             self._available = True
-            logger.info("  ✅ TradingSystem: جميع المكوّنات محمّلة")
+            logger.info("  ✅ TradingSystem ready")
         except Exception as e:
-            logger.warning(f"  ⚠️ TradingSystem init failed: {e}")
+            logger.warning(f"  ⚠️ TradingSystem init: {e}")
 
     def get_trading_context(self) -> str:
-        """يجلب سياق التداول لإدخاله في prompt الـ Synthesizer"""
-        if not self._available or not self._bridge:
-            return ""
+        if not self._available or not self._bridge: return ""
         try:
-            bridge_result = self._bridge.run_bridge_cycle()
-            return bridge_result.get("synthesis_context", "")
+            return self._bridge.run_bridge_cycle().get("synthesis_context", "")
         except Exception as e:
-            logger.warning(f"  ⚠️ bridge context error: {e}")
+            logger.warning(f"  ⚠️ bridge context: {e}")
             return ""
 
-    def run_trading_cycle(self, synthesis: Dict, cycle_num: int) -> Dict:
-        """يشغّل دورة التداول الكاملة بعد الـ Synthesis"""
+    def run_trading_cycle(self, synthesis: Dict, cycle_num: int,
+                          mode: str = "PAPER") -> Dict:
         if not self._available:
             return {"skipped": True, "reason": "components not loaded"}
-
         logger.info("\n" + "─"*55)
-        logger.info("📈 [TRADING] دورة التداول المتكاملة...")
+        logger.info(f"📈 [TRADING] دورة تداول | Mode: {mode}")
         logger.info("─"*55)
-
         result = {}
-
-        # ── 1. فحص VolatilityGuard أولاً ──
         try:
-            market_data = {}  # يمكن تمرير بيانات السوق هنا إذا توفرت
-            guard_result = self._guard.check_trading_allowed(market_data)
-            regime       = guard_result.get("regime", "UNKNOWN")
-            allowed      = guard_result.get("allowed", True)
-            vol_factor   = guard_result.get("volume_factor", 1.0)
-
-            logger.info(f"  🛡️  Volatility: {regime} | مسموح: {'✅' if allowed else '❌'} | حجم: {vol_factor:.0%}")
+            guard_result = self._guard.check_trading_allowed({})
+            regime   = guard_result.get("regime", "UNKNOWN")
+            allowed  = guard_result.get("allowed", True)
+            vol_fac  = guard_result.get("volume_factor", 1.0)
+            logger.info(f"  🛡️  {regime} | {'\u2705' if allowed else '\u274c'} | حجم: {vol_fac:.0%}")
             result["volatility"] = guard_result
-
             if not allowed:
                 reason = guard_result.get("reason", "unknown")
-                logger.warning(f"  🚫 التداول موقوف: {reason}")
+                logger.warning(f"  🚫 موقوف: {reason}")
                 _db_inject("trading:blocked", {"reason": reason, "regime": regime,
                            "timestamp": datetime.now().isoformat()}, 0.85)
                 return {"blocked": True, "volatility": guard_result}
         except Exception as e:
-            logger.warning(f"  ⚠️ VolatilityGuard error: {e}")
+            logger.warning(f"  ⚠️ VolatilityGuard: {e}")
             result["volatility"] = {"error": str(e)}
-
-        # ── 2. تشغيل الوكيل مع سياق الـ Synthesis ──
         try:
-            trading_result = self._trading.run_with_context(
-                synthesis, orchestrator_cycle=cycle_num
-            )
+            trading_result = self._trading.run_with_context(synthesis, orchestrator_cycle=cycle_num)
             result["trading"] = trading_result
-            status = trading_result.get("status", "unknown")
-            logger.info(f"  🤖 نتيجة التداول: {status}")
+            logger.info(f"  🤖 {trading_result.get('status', 'done')}")
         except Exception as e:
-            logger.warning(f"  ⚠️ TradingIntegrationSystem error: {e}")
+            logger.warning(f"  ⚠️ TradingIntegration: {e}")
             result["trading"] = {"error": str(e)}
-
-        # ── 3. استخلاص الدروس وتحديث الذاكرة ──
         try:
             bridge_result = self._bridge.run_bridge_cycle()
-            trend         = bridge_result.get("performance_trend", "stable")
-            lessons_count = bridge_result.get("lessons_stored", 0)
-            logger.info(f"  🧠 ذاكرة التداول: {trend} | دروس: {lessons_count}")
+            logger.info(f"  🧠 Bridge: {bridge_result.get('performance_trend','stable')} | دروس: {bridge_result.get('lessons_stored',0)}")
             result["memory_bridge"] = bridge_result
         except Exception as e:
-            logger.warning(f"  ⚠️ TradingMemoryBridge error: {e}")
+            logger.warning(f"  ⚠️ Bridge: {e}")
             result["memory_bridge"] = {"error": str(e)}
-
         _db_inject("trading:last_cycle", {
-            "cycle": cycle_num,
-            "timestamp": datetime.now().isoformat(),
-            "result": result,
+            "cycle": cycle_num, "timestamp": datetime.now().isoformat(), "result": result
         }, 0.90)
-
         return result
 
 
-# ══════════════════════════════════════════════════════════════
-# المنسّق الرئيسي
-# ══════════════════════════════════════════════════════════════
-
-class NooghOrchestrator:
-    """القائد الذي يربط كل شيء"""
+class TradingIntelligence:
+    """
+    يضمّ الأدوات الأربعة الجديدة:
+      - TradingPerformanceReporter  (تقرير يومي)
+      - AdaptiveStrategySelector   (أفضل استراتيجية لكل Regime)
+      - LiveToPaperSwitcher        (مفتاح Paper/Live)
+      - SymbolScorer               (ترتيب الرموز)
+    """
 
     def __init__(self):
-        self.learner      = LearningSystem()
-        self.monitor      = MonitoringSystem()
-        self.synthesizer  = KnowledgeSynthesizer()
-        self.trading      = TradingSystem()
-        
+        self._reporter = None
+        self._selector = None
+        self._switcher = None
+        self._scorer   = None
+        self._available = False
+        self._init()
+
+    def _init(self):
+        loaded = 0
+        try:
+            from agents.trading_performance_reporter import get_reporter
+            self._reporter = get_reporter()
+            loaded += 1
+        except Exception as e:
+            logger.warning(f"  ⚠️ PerformanceReporter: {e}")
+        try:
+            from agents.adaptive_strategy_selector import get_strategy_selector
+            self._selector = get_strategy_selector()
+            loaded += 1
+        except Exception as e:
+            logger.warning(f"  ⚠️ StrategySelector: {e}")
+        try:
+            from agents.live_to_paper_switcher import get_mode_switcher
+            self._switcher = get_mode_switcher()
+            loaded += 1
+        except Exception as e:
+            logger.warning(f"  ⚠️ ModeSwitcher: {e}")
+        try:
+            from agents.symbol_scorer import get_symbol_scorer
+            self._scorer = get_symbol_scorer()
+            loaded += 1
+        except Exception as e:
+            logger.warning(f"  ⚠️ SymbolScorer: {e}")
+        self._available = loaded > 0
+        logger.info(f"  📊 TradingIntelligence: {loaded}/4 محمَّل")
+
+    # ── Symbol Scorer (كل 6 دورات) ───────────────────────
+    def run_symbol_scoring(self) -> Dict:
+        if not self._scorer:
+            return {"skipped": True}
+        try:
+            result = self._scorer.score_and_publish()
+            logger.info(
+                f"  🏆 Top Symbols: {result.get('top_symbols',[])[:3]} | "
+                f"Avoid: {result.get('avoid',[])}")
+            return result
+        except Exception as e:
+            logger.warning(f"  ⚠️ SymbolScorer: {e}")
+            return {"error": str(e)}
+
+    # ── Strategy Selector (كل 2 دورتين) ───────────────────
+    def run_strategy_selection(self) -> Dict:
+        if not self._selector:
+            return {"skipped": True}
+        try:
+            result = self._selector.select_and_publish()
+            logger.info(
+                f"  🎯 Regime: {result.get('regime')} | "
+                f"Preferred: {result.get('preferred',[])} | "
+                f"Disabled: {result.get('disabled',[])}")
+            return result
+        except Exception as e:
+            logger.warning(f"  ⚠️ StrategySelector: {e}")
+            return {"error": str(e)}
+
+    # ── Mode Switcher (كل دورة) ───────────────────────────
+    def run_mode_evaluation(self) -> str:
+        if not self._switcher:
+            return "PAPER"
+        try:
+            result = self._switcher.evaluate()
+            mode    = result.get("mode", "PAPER")
+            changed = result.get("changed", False)
+            reason  = result.get("reason", "")
+            if changed:
+                logger.info(
+                    f"  🔁 وضع التداول تغيّر: {result.get('prev_mode')} → {mode} ({reason})"
+                )
+            else:
+                logger.info(f"  🔄 Mode: {mode} ({reason[:50]})")
+            return mode
+        except Exception as e:
+            logger.warning(f"  ⚠️ ModeSwitcher: {e}")
+            return "PAPER"
+
+    # ── Performance Report (كل 24 دورة) ─────────────────
+    def run_daily_report(self) -> Dict:
+        if not self._reporter:
+            return {"skipped": True}
+        try:
+            report = self._reporter.generate_report(since_hours=24)
+            logger.info(
+                f"  📊 تقرير يومي: WR={report.get('win_rate',0)}% | "
+                f"PnL=${report.get('total_pnl',0):.2f} | "
+                f"Trades={report.get('total_trades',0)}"
+            )
+            return report
+        except Exception as e:
+            logger.warning(f"  ⚠️ PerformanceReporter: {e}")
+            return {"error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════
+# المنسّق الرئيسي
+# ══════════════════════════════════════════════════════════
+
+class NooghOrchestrator:
+
+    def __init__(self):
+        self.learner     = LearningSystem()
+        self.monitor     = MonitoringSystem()
+        self.synthesizer = KnowledgeSynthesizer()
+        self.trading     = TradingSystem()
+        self.intelligence = TradingIntelligence()   # ← الأدوات الأربعة الجديدة
+
         try:
             from agents.decision_engine import DecisionEngine
             self.decision_engine = DecisionEngine()
         except ImportError:
             self.decision_engine = None
-            logger.warning("  ⚠️ DecisionEngine not found. Actions will not be executed.")
+            logger.warning("  ⚠️ DecisionEngine not found")
 
         try:
             from agents.strategic_goals import StrategicGoalsSupervisor
             self.strategy = StrategicGoalsSupervisor()
         except ImportError:
             self.strategy = None
-            logger.warning("  ⚠️ StrategicGoalsSupervisor not found.")
+            logger.warning("  ⚠️ StrategicGoalsSupervisor not found")
 
         self._cycle = 0
         logger.info("🤖 NOOGH Orchestrator initialized")
-        logger.info("   Learn ←→ Monitor ←→ Agents ←→ Synthesis ←→ Trading ←→ Strategy ←→ Action")
+        logger.info("   Learn → Monitor → Context → Agents → Intelligence → Synthesis → Trading → Mode → Report → Goals → Action")
 
-
-    def _run_agent_with_comprehension(self, agent_name: str,
-                                       script: str, args: List[str] = None,
-                                       timeout: int = 30) -> Dict:
+    def _run_agent_with_comprehension(self, agent_name: str, script: str,
+                                       args: List[str] = None, timeout: int = 30) -> Dict:
         logger.info(f"  🤖 [{agent_name}]...")
         r = _run_agent_script(script, args or ["--report"], timeout=timeout)
-
         if r.get("success") and r.get("stdout"):
-            prompt = f"""وكيل NOOGH [{agent_name}] أنهى مهمته.
-
-نتيجته:
+            prompt = f"""وكيل [{agent_name}] أنهى.
 {r['stdout'][-400:]}
-
-في جملة واحدة:
-1. ماذا وجد؟
-2. هل يحتاج تدخل فوري؟"""
+جملة واحدة: ماذا وجد؟ هل تدخّل فوري؟"""
             understanding = _ask_brain(prompt, max_tokens=150)
             if understanding:
-                _db_inject(
-                    f"agent_run:{agent_name}:{int(time.time())}",
-                    {"agent": agent_name, "understanding": understanding,
-                     "output_preview": r["stdout"][-200:]},
-                    utility=0.82
-                )
+                _db_inject(f"agent_run:{agent_name}:{int(time.time())}",
+                           {"agent": agent_name, "understanding": understanding,
+                            "output_preview": r["stdout"][-200:]}, 0.82)
                 logger.info(f"    💡 {understanding[:70]}")
         elif not r.get("success"):
-            logger.warning(f"    ⚠️ فشل أو لم ينشئ تقريراً")
-
+            logger.warning(f"    ⚠️ فشل")
         return r
 
     def run_cycle(self) -> Dict:
@@ -586,133 +541,91 @@ class NooghOrchestrator:
 
         results = {}
 
-        # ① التعلم + الفهم
+        # ① تعلم + فهم
         try:
             results["learning"] = self.learner.run_and_comprehend()
         except Exception as e:
-            logger.error(f"  ❌ Learning error: {e}")
+            logger.error(f"  ❌ Learning: {e}")
             results["learning"] = {"success": False, "error": str(e)}
 
-        # ② المراقبة + الفهم
+        # ② مراقبة + فهم
         try:
             results["monitoring"] = self.monitor.run_and_comprehend()
         except Exception as e:
-            logger.error(f"  ❌ Monitoring error: {e}")
+            logger.error(f"  ❌ Monitoring: {e}")
             results["monitoring"] = {"success": False, "error": str(e)}
 
-        # ③ جلب سياق التداول قبل الـ Synthesis
+        # ③ جلب سياق التداول (Bridge)
         trading_context = ""
         try:
             trading_context = self.trading.get_trading_context()
         except Exception as e:
             logger.warning(f"  ⚠️ trading context: {e}")
 
-        # ④ الوكلاء المتخصصون — اختيار من الدماغ (Sovereign Orchestration)
+        # ④ وكلاء Sovereign
         logger.info("\n" + "─"*55)
-        logger.info("🤖 [SOVEREIGN AGENTS] الدماغ يختار الوكلاء لهذه الدورة...")
+        logger.info("🤖 [SOVEREIGN] الدماغ يختار الوكلاء...")
         logger.info("─"*55)
-
-        system_context = f"Cycle: {self._cycle}\n"
-        system_context += f"Learning Status: {results.get('learning', {}).get('success', False)}\n"
-        system_context += f"Monitoring Status: {results.get('monitoring', {}).get('success', False)}\n"
-        system_context += f"Monitoring Understanding: {results.get('monitoring', {}).get('understanding', 'None')}\n"
-
-        prompt = f"""You are the Sovereign Orchestrator of NOOGH.
-Based on the current system context, which ONE to THREE local agents should be executed right now?
-Available Agents:
-- health_monitor_agent.py (Check system health & RAM)
-- security_audit_agent.py (Scan for vulnerabilities)
-- log_analyzer_agent.py (Read recent logs for errors)
-- web_researcher_agent.py (Search the web for topics)
-- local_knowledge_harvester.py (Scan local files for knowledge)
-- dependency_auditor_agent.py (Check pip packages)
-- tiktok_auditor_agent.py (Analyze TikTok trends)
-- performance_profiler_agent.py (Profile python scripts)
-- test_runner_agent.py (Run pytest)
-- pipeline_optimizer_agent.py (Optimize code pipelines)
-- rapid_prototyping_agent.py (Write quick python tests)
-- backup_agent_agent.py (Backup the system)
-- file_manager_agent.py (Organize files)
-
-System Context:
-{system_context}
-
-Return ONLY a valid JSON array of objects representing the agents to run. 
-Each object must have "agent_name" (a readable name) and "script" (the path starting with 'agents/').
-Example:
-[
-  {{"agent_name": "HealthMonitor", "script": "agents/health_monitor_agent.py"}},
-  {{"agent_name": "LocalHarvester", "script": "agents/local_knowledge_harvester.py"}}
-]
-"""
-        brain_response = _ask_brain(prompt, max_tokens=300)
-        
+        brain_prompt = f"""You are NOOGH Sovereign Orchestrator.
+System: Cycle {self._cycle} | Learning OK: {results.get('learning',{}).get('success')} | Monitoring: {results.get('monitoring',{}).get('understanding',{}).get('status','?')}
+Choose 1-3 agents from:
+- health_monitor_agent.py  - security_audit_agent.py  - log_analyzer_agent.py
+- web_researcher_agent.py  - local_knowledge_harvester.py  - dependency_auditor_agent.py
+- performance_profiler_agent.py  - test_runner_agent.py  - backup_agent_agent.py
+- file_manager_agent.py  - pipeline_optimizer_agent.py
+Return ONLY JSON array: [{{"agent_name":"Name","script":"agents/file.py"}}]"""
+        brain_response = _ask_brain(brain_prompt, max_tokens=250)
         current_agents = []
         try:
             match = re.search(r'\[.*\]', brain_response, re.DOTALL)
             if match:
-                selected_agents = json.loads(match.group(0))
-                for ag in selected_agents:
+                for ag in json.loads(match.group(0)):
                     if isinstance(ag, dict) and "agent_name" in ag and "script" in ag:
-                        script_path = ag["script"]
-                        if not script_path.startswith("agents/"):
-                            script_path = "agents/" + script_path.split("/")[-1]
-                        current_agents.append((ag["agent_name"], script_path))
-        except Exception as e:
-            logger.error(f"  ❌ Failed to parse Brain agent selection: {e}")
-            
+                        sp = ag["script"]
+                        if not sp.startswith("agents/"): sp = "agents/" + sp.split("/")[-1]
+                        current_agents.append((ag["agent_name"], sp))
+        except Exception: pass
         if not current_agents:
-            logger.warning("  ⚠️ Brain returned invalid JSON or empty array. Falling back to default.")
-            current_agents = [
-                ("HealthMonitor", "agents/health_monitor_agent.py"),
-                ("LogAnalyzer",   "agents/log_analyzer_agent.py")
-            ]
-            
-        logger.info(f"  🧠 Brain selected {len(current_agents)} agents to run:")
-        for name, script_path in current_agents:
-            logger.info(f"     - {name} ({script_path})")
-
+            current_agents = [("HealthMonitor", "agents/health_monitor_agent.py"),
+                              ("LogAnalyzer",   "agents/log_analyzer_agent.py")]
         agent_results = {}
-        for agent_name, script in current_agents:
+        for name, script in current_agents:
             try:
-                agent_results[agent_name] = self._run_agent_with_comprehension(
-                    agent_name, script, timeout=25
-                )
+                agent_results[name] = self._run_agent_with_comprehension(name, script, timeout=25)
             except Exception as e:
-                logger.warning(f"    ⚠️ {agent_name}: {e}")
-                agent_results[agent_name] = {"success": False, "error": str(e)}
+                agent_results[name] = {"success": False, "error": str(e)}
+        results["agents"] = {"ran": list(agent_results.keys()), "results": agent_results}
+        logger.info(f"  ✅ {len(current_agents)} وكيل أنهى")
 
-        results["agents"] = {
-            "group": "sovereign",
-            "ran": list(agent_results.keys()),
-            "results": agent_results,
-        }
-        logger.info(f"  ✅ {len(current_agents)} وكيل أنهى مهمته بناءً على أوامر الدماغ")
-
-        # ⑤ المسح العميق كل 5 دورات والتنظيف كل 6 دورات
+        # ⑤ دوري — Deep Scan / Distill / Evolve
         if self._cycle % 5 == 0:
-            logger.info("\n🔍 [DEEP SCAN] مسح شامل كل 5 دورات...")
+            logger.info("\n🔍 [DEEP SCAN]")
             r = _run_agent_script("agents/deep_system_scanner.py", timeout=90)
-            if r["success"]:
-                logger.info("  ✅ Deep scan complete")
-                _ask_brain(f"ما أهم ما وجده هذا المسح:\n{r['stdout'][-500:]}")
-                
+            if r["success"]: logger.info("  ✅ Done")
         if self._cycle % 6 == 0:
-            logger.info("\n⚗️ [DISTILLATION] تقطير وتنظيف الذاكرة كل 6 دورات...")
+            logger.info("\n⚗️ [DISTILLATION]")
             r = _run_agent_script("agents/memory_distiller.py", timeout=120)
-            if r["success"]:
-                logger.info("  ✅ Memory distilled successfully")
-                
-        # ⑥ التطور الذاتي كل 8 دورات
+            if r["success"]: logger.info("  ✅ Done")
         if self._cycle % 8 == 0:
-            logger.info("\n🧬 [EVOLUTION] فحص الأكواد وتحسين الذات...")
+            logger.info("\n🧬 [EVOLUTION]")
             r = _run_agent_script("agents/self_healer.py", timeout=300)
-            if r["success"]:
-                logger.info("  ✅ Self-Healing cycle finished")
-            else:
-                logger.warning(f"  ⚠️ Self-Healing returned non-success (or timed out)")
+            if r["success"]: logger.info("  ✅ Done")
 
-        # ⑦ التركيب الشامل (مع سياق التداول)
+        # ⑥ Symbol Scorer (كل 6 دورات)
+        if self._cycle % 6 == 0:
+            logger.info("\n" + "─"*55)
+            logger.info("🏆 [SYMBOL SCORER] تقييم الرموز...")
+            logger.info("─"*55)
+            results["symbol_scores"] = self.intelligence.run_symbol_scoring()
+
+        # ⑦ Strategy Selector (كل 2 دورتين)
+        if self._cycle % 2 == 0:
+            logger.info("\n" + "─"*55)
+            logger.info("🎯 [STRATEGY SELECTOR] تحديث الاستراتيجيات...")
+            logger.info("─"*55)
+            results["strategy_selection"] = self.intelligence.run_strategy_selection()
+
+        # ⑧ Synthesis
         try:
             results["synthesis"] = self.synthesizer.synthesize(
                 results.get("learning", {}),
@@ -720,84 +633,108 @@ Example:
                 trading_context=trading_context
             )
         except Exception as e:
-            logger.error(f"  ❌ Synthesis error: {e}")
+            logger.error(f"  ❌ Synthesis: {e}")
             results["synthesis"] = {}
 
-        # ⑧ دورة التداول الكاملة (بعد الـ Synthesis مباشرة)
+        # ⑨ Trading Cycle
+        trading_mode = "PAPER"  # fallback آمن قبل Mode Switcher
         try:
             results["trading"] = self.trading.run_trading_cycle(
                 results.get("synthesis", {}),
-                cycle_num=self._cycle
+                cycle_num=self._cycle,
+                mode=trading_mode
             )
         except Exception as e:
-            logger.error(f"  ❌ Trading cycle error: {e}")
+            logger.error(f"  ❌ Trading: {e}")
             results["trading"] = {"error": str(e)}
 
-        # ⑨ تحديث الأهداف الاستراتيجية
+        # ⑩ Mode Switcher (كل دورة — بعد التداول مباشرة)
+        logger.info("\n" + "─"*55)
+        logger.info("🔄 [MODE SWITCHER] تقييم الوضع...")
+        logger.info("─"*55)
+        current_mode = self.intelligence.run_mode_evaluation()
+        results["trading_mode"] = current_mode
+
+        # ⑪ Performance Report (كل 24 دورة)
+        if self._cycle % 24 == 0:
+            logger.info("\n" + "─"*55)
+            logger.info("📊 [DAILY REPORT] توليد تقرير اليوم...")
+            logger.info("─"*55)
+            results["daily_report"] = self.intelligence.run_daily_report()
+
+        # ⑫ تحديث الأهداف الاستراتيجية
         if self.strategy and results.get("synthesis"):
             try:
-                mon_state = results.get("monitoring", {}).get("understanding", {})
-                self.strategy.review_and_update_goals(results["synthesis"], mon_state)
+                self.strategy.review_and_update_goals(
+                    results["synthesis"],
+                    results.get("monitoring", {}).get("understanding", {})
+                )
             except Exception as e:
-                logger.error(f"  ❌ Strategy update error: {e}")
-            
-        # ⑩ التنفيذ (Action)
+                logger.error(f"  ❌ Strategy: {e}")
+
+        # ⑬ تنفيذ القرار
         if self.decision_engine and results.get("synthesis"):
             try:
-                action_result = self.decision_engine.execute_decision(results["synthesis"])
-                results["action"] = action_result
+                results["action"] = self.decision_engine.execute_decision(results["synthesis"])
             except Exception as e:
-                logger.error(f"  ❌ Decision Execution error: {e}")
+                logger.error(f"  ❌ Action: {e}")
 
-        # ── ملخص الدورة ──
-        elapsed = round(time.time() - start, 1)
-        synthesis = results.get("synthesis", {})
+        # ── ملخص الدورة ──────────────────────────────────
+        elapsed        = round(time.time() - start, 1)
+        synthesis      = results.get("synthesis", {})
         action_status  = results.get("action", {}).get("status", "none")
         trading_status = results.get("trading", {}).get("trading", {}).get("status", "—")
         vol_regime     = results.get("trading", {}).get("volatility", {}).get("regime", "—")
+        top_symbols    = results.get("symbol_scores", {}).get("top_symbols", [])
+        strategy_pref  = results.get("strategy_selection", {}).get("preferred", [])
 
         logger.info("\n" + "═"*58)
-        logger.info(f"✅ CYCLE #{self._cycle} DONE | {elapsed}s")
+        logger.info(f"✅ CYCLE #{self._cycle} DONE | {elapsed}s | Mode: {current_mode}")
         logger.info(f"   🎯 {synthesis.get('key_decision','?')[:55]}")
-        logger.info(f"   ⚡ Action Status: {action_status}")
-        logger.info(f"   📈 Trading: {trading_status} | Vol Regime: {vol_regime}")
+        logger.info(f"   ⚡ Action: {action_status}")
+        logger.info(f"   📈 Trading: {trading_status} | Vol: {vol_regime}")
+        if top_symbols:    logger.info(f"   🏆 Top Symbols: {top_symbols}")
+        if strategy_pref:  logger.info(f"   🎯 Preferred Strategies: {strategy_pref}")
         logger.info(f"   📊 Score: {synthesis.get('overall_score','?')}")
         logger.info("═"*58)
 
         _db_inject("orchestrator:last_cycle", {
-            "cycle": self._cycle,
-            "elapsed_sec": elapsed,
-            "timestamp": datetime.now().isoformat(),
-            "agents_ran": results.get("agents", {}).get("ran", []),
-            "synthesis": synthesis,
+            "cycle":          self._cycle,
+            "elapsed_sec":    elapsed,
+            "timestamp":      datetime.now().isoformat(),
+            "agents_ran":     results.get("agents", {}).get("ran", []),
+            "synthesis":      synthesis,
             "trading_status": trading_status,
-            "vol_regime": vol_regime,
+            "vol_regime":     vol_regime,
+            "trading_mode":   current_mode,
+            "top_symbols":    top_symbols,
+            "strategy_pref":  strategy_pref,
         }, 0.96)
 
         return results
 
     def run_forever(self, interval_minutes: int = 60):
-        logger.info(f"🚀 Orchestrator loop: every {interval_minutes} min")
+        logger.info(f"🚀 Orchestrator: كل {interval_minutes} دقيقة")
         while True:
             try:
                 self.run_cycle()
             except KeyboardInterrupt:
-                logger.info("⛔ Stopped")
-                break
+                logger.info("⛔ Stopped"); break
             except Exception as e:
                 logger.error(f"Cycle error: {e}", exc_info=True)
-
-            logger.info(f"\n💤 Sleeping {interval_minutes} minutes...\n")
+            logger.info(f"\n💤 Sleeping {interval_minutes}m...\n")
             time.sleep(interval_minutes * 60)
 
 
-# ─── Main ─────────────────────────────────────────────────────
+# ─── Main ───────────────────────────────────────────────────
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser(description="NOOGH Master Orchestrator")
-    p.add_argument("--once",     action="store_true", help="دورة واحدة فقط")
-    p.add_argument("--interval", type=int, default=60, help="كل N دقيقة")
-    p.add_argument("--monitor-only", action="store_true", help="مراقبة فقط")
+    p.add_argument("--once",         action="store_true")
+    p.add_argument("--interval",     type=int, default=60)
+    p.add_argument("--monitor-only", action="store_true")
+    p.add_argument("--report",       action="store_true", help="تقرير أداء فوري")
+    p.add_argument("--score",        action="store_true", help="تقييم الرموز فوري")
     args = p.parse_args()
 
     orch = NooghOrchestrator()
@@ -805,6 +742,12 @@ if __name__ == "__main__":
     if args.monitor_only:
         r = orch.monitor.run_and_comprehend()
         print(json.dumps(r["understanding"], ensure_ascii=False, indent=2))
+    elif args.report:
+        r = orch.intelligence.run_daily_report()
+        print(json.dumps(r, ensure_ascii=False, indent=2))
+    elif args.score:
+        r = orch.intelligence.run_symbol_scoring()
+        print(json.dumps({"top": r.get("top_symbols"), "avoid": r.get("avoid")}, ensure_ascii=False, indent=2))
     elif args.once:
         orch.run_cycle()
     else:
