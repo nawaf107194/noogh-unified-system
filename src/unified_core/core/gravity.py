@@ -161,8 +161,11 @@ class DecisionScorer:
         self._goal_fingerprints: Set[str] = set()
         
         # 🧠 DECISION MEMORY
+        # FIX: Reduced TTL from 300s to 50s to prevent stale decisions.
+        # The autonomous cycle runs every ~120s, so 300s caused the same
+        # decision to repeat across multiple cycles without re-evaluation.
         self._decision_cache: Dict[str, Decision] = {}
-        self._decision_cache_ttl = 300
+        self._decision_cache_ttl = 50  # was 300 — must be < cycle_interval
         self._decision_timestamps: Dict[str, float] = {}
         
         # NeuronFabric + EventBus
