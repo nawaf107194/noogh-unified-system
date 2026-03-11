@@ -1,55 +1,77 @@
+"""Base Agent - Unified base class for all NOOGH agents."""
 from abc import ABC, abstractmethod
 import asyncio
+import logging
+import time
+from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
+
 
 class BaseAgent(ABC):
-    def __init__(self):
+    """Unified base class for all NOOGH agents."""
+
+    def __init__(self, name: Optional[str] = None):
+        self.name = name or self.__class__.__name__
         self._running = False
-    
+        self._start_time: Optional[float] = None
+        self._cycle_count = 0
+        self._error_count = 0
+        self.logger = logging.getLogger(self.name)
+
+    # ─── Abstract Interface ───────────────────────────────────────────────────
+
     @abstractmethod
     async def start(self):
-        """Starts the agent's main loop."""
+        """Start the agent's main loop."""
         pass
-    
+
     @abstractmethod
     async def stop(self):
-        """Stops the agent's main loop."""
+        """Stop the agent's main loop."""
         pass
-    
+
     @abstractmethod
-    async def process(self, data):
-        """Processes incoming data."""
+    async def process(self, data: Any):
+        """Process incoming data."""
         pass
-    
-    async def run(self):
-        """Main run loop for the agent."""
+
+    # ─── Run Loop ─────────────────────────────────────────────────────────────
+
+    async def run(self, interval: float = 1.0):
+        """Main run loop - calls process() periodically."""
         self._running = True
+        self._start_time = time.time()
+        self.logger.info(f"[{self.name}] started")
         while self._running:
-            # Simulate processing some data
-            await self.process(None)
-            await asyncio.sleep(1)  # Simulate periodic check or delay
-    
-    def is_running(self):
+            try:
+                self._cycle_count += 1
+                await self.process(None)
+            except Exception as e:
+                self._error_count += 1
+                self.logger.error(f"[{self.name}] cycle error: {e}")
+            await asyncio.sleep(interval)
+        self.logger.info(f"[{self.name}] stopped after {self._cycle_count} cycles")
+
+    # ─── Utilities ────────────────────────────────────────────────────────────
+
+    def is_running(self) -> bool:
         return self._running
 
-# Example usage in one of the agents
-class DependencyAuditorAgent(BaseAgent):
-    async def start(self):
-        print("Starting Dependency Auditor Agent")
-        asyncio.create_task(self.run())
-    
-    async def stop(self):
-        print("Stopping Dependency Auditor Agent")
-        self._running = False
-    
-    async def process(self, data):
-        print("Processing data in Dependency Auditor Agent")
+    def uptime(self) -> float:
+        """Return uptime in seconds."""
+        if self._start_time is None:
+            return 0.0
+        return time.time() - self._start_time
 
-# Usage example
-async def main():
-    agent = DependencyAuditorAgent()
-    await agent.start()
-    await asyncio.sleep(5)  # Let the agent run for 5 seconds
-    await agent.stop()
+    def stats(self) -> dict:
+        return {
+            "name": self.name,
+            "running": self._running,
+            "uptime_s": round(self.uptime(), 1),
+            "cycles": self._cycle_count,
+            "errors": self._error_count,
+        }
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    def __repr__(self):
+        return f"<{self.name} running={self._running} cycles={self._cycle_count}>"
