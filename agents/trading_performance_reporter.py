@@ -2,8 +2,9 @@
 """
 NOOGH Trading Performance Reporter
 ------------------------------------
-يُنشئ تقرير أداء يومي/أسبوعي شامل من paper_trades وbeliefs
-ويحفظه في DB تحت مفتاح trading:daily_report
+يُنشئ تقرير أداء يومي/أسبوعي شامل ويحفظه في DB.
+
+يُستدعى من الـ Orchestrator كل 24 دورة (≈ يومياً) أو عند الطلب.
 """
 
 import sys, os, json, time, sqlite3, logging
@@ -18,7 +19,7 @@ logging.basicConfig(
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler(
-            "/home/noogh/projects/noogh_unified_system/src/logs/trading_performance.log"
+            "/home/noogh/projects/noogh_unified_system/src/logs/perf_reporter.log"
         ),
     ]
 )
@@ -30,51 +31,70 @@ DB_PATH = f"{SRC}/data/shared_memory.sqlite"
 
 class TradingPerformanceReporter:
     """
-    يُولّد تقرير أداء شامل يُغذّي KnowledgeSynthesizer والـ TradingMemoryBridge
+    يُنشئ تقارير أداء تداول شاملة ويُخزّنها في DB.
     """
 
     def __init__(self):
         logger.info("📊 TradingPerformanceReporter initialized")
 
     # ─────────────────────────────────────────────
-    # جلب البيانات
+    # قراءة بيانات الصفقات
     # ─────────────────────────────────────────────
 
-    def _fetch_trades(self, days: int = 1) -> List[Dict]:
-        """يجلب صفقات الـ N أيام الأخيرة من paper_trades"""
+    def _fetch_trades(self, since_hours: int = 24) -> List[Dict]:
+        """يجلب الصفقات من آخر N ساعة"""
         trades = []
-        cutoff = time.time() - (days * 86400)
+        since_ts = time.time() - (since_hours * 3600)
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT symbol, strategy, direction, entry_price, exit_price, "
-                "pnl, confidence, closed_at FROM paper_trades "
-                "WHERE closed_at >= ? ORDER BY closed_at DESC",
-                (cutoff,)
-            )
-            for row in cur.fetchall():
-                trades.append({
-                    "symbol":      row[0],
-                    "strategy":    row[1],
-                    "direction":   row[2],
-                    "entry":       row[3],
-                    "exit":        row[4],
-                    "pnl":         row[5] or 0.0,
-                    "confidence":  row[6] or 0.0,
-                    "closed_at":   row[7],
-                })
+            cur  = conn.cursor()
+            # محاولة جدول paper_trades أولاً
+            try:
+                cur.execute(
+                    "SELECT symbol, side, entry_price, exit_price, pnl, "
+                    "strategy, confidence, created_at "
+                    "FROM paper_trades WHERE created_at > ? ORDER BY created_at DESC",
+                    (since_ts,)
+                )
+                rows = cur.fetchall()
+                for r in rows:
+                    trades.append({
+                        "symbol":     r[0], "side":       r[1],
+                        "entry":      r[2], "exit":        r[3],
+                        "pnl":        r[4], "strategy":    r[5],
+                        "confidence": r[6] or 0.5,
+                        "timestamp":  r[7],
+                    })
+            except Exception:
+                pass
+
+            # fallback: beliefs table
+            if not trades:
+                cur.execute(
+                    "SELECT value FROM beliefs WHERE key LIKE 'trading:trade:%' "
+                    "AND updated_at > ? ORDER BY updated_at DESC LIMIT 200",
+                    (since_ts,)
+                )
+                for row in cur.fetchall():
+                    try:
+                        t = json.loads(row[0])
+                        if isinstance(t, dict):
+                            trades.append(t)
+                    except Exception:
+                        pass
             conn.close()
         except Exception as e:
             logger.warning(f"  ⚠️ fetch_trades error: {e}")
         return trades
 
-    def _fetch_yesterday_report(self) -> Dict:
+    def _fetch_prev_report(self) -> Dict:
         """يجلب تقرير أمس للمقارنة"""
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            cur.execute("SELECT value FROM beliefs WHERE key='trading:daily_report' LIMIT 1")
+            cur  = conn.cursor()
+            cur.execute(
+                "SELECT value FROM beliefs WHERE key='trading:daily_report_prev' LIMIT 1"
+            )
             row = cur.fetchone()
             conn.close()
             return json.loads(row[0]) if row else {}
@@ -82,202 +102,220 @@ class TradingPerformanceReporter:
             return {}
 
     # ─────────────────────────────────────────────
-    # تحليل الأداء
+    # حساب الإحصائيات
     # ─────────────────────────────────────────────
 
-    def _analyze(self, trades: List[Dict]) -> Dict:
-        """يحلّل قائمة الصفقات ويعيد إحصاءات شاملة"""
+    def _compute_stats(self, trades: List[Dict]) -> Dict:
         if not trades:
             return {
                 "total": 0, "wins": 0, "losses": 0, "win_rate": 0.0,
-                "total_pnl": 0.0, "avg_pnl": 0.0, "max_win": 0.0, "max_loss": 0.0,
-                "by_strategy": {}, "by_symbol": {}, "by_direction": {},
-                "drawdown_max": 0.0, "profit_factor": 0.0,
+                "total_pnl": 0.0, "avg_win": 0.0, "avg_loss": 0.0,
+                "best_trade": 0.0, "worst_trade": 0.0,
+                "profit_factor": 0.0, "max_drawdown": 0.0,
+                "by_strategy": {}, "by_symbol": {},
             }
 
-        wins   = [t for t in trades if t["pnl"] > 0]
-        losses = [t for t in trades if t["pnl"] <= 0]
-        total_pnl = sum(t["pnl"] for t in trades)
+        total   = len(trades)
+        winners = [t for t in trades if (t.get("pnl") or 0) > 0]
+        losers  = [t for t in trades if (t.get("pnl") or 0) <= 0]
+        wins    = len(winners)
+        losses  = len(losers)
+        pnls    = [t.get("pnl") or 0.0 for t in trades]
 
-        # Profit Factor
-        gross_profit = sum(t["pnl"] for t in wins) if wins else 0.0
-        gross_loss   = abs(sum(t["pnl"] for t in losses)) if losses else 0.001
-        profit_factor = round(gross_profit / gross_loss, 2)
+        total_pnl = sum(pnls)
+        avg_win   = sum(t["pnl"] for t in winners) / wins  if wins   else 0.0
+        avg_loss  = sum(t["pnl"] for t in losers)  / losses if losses else 0.0
+        best      = max(pnls)
+        worst     = min(pnls)
+
+        gross_profit = sum(p for p in pnls if p > 0)
+        gross_loss   = abs(sum(p for p in pnls if p < 0))
+        profit_factor = round(gross_profit / gross_loss, 2) if gross_loss else 0.0
 
         # Max Drawdown
-        running = 0.0
-        peak    = 0.0
-        max_dd  = 0.0
-        for t in sorted(trades, key=lambda x: x["closed_at"]):
-            running += t["pnl"]
-            if running > peak:
-                peak = running
-            dd = peak - running
+        equity = 0.0
+        peak   = 0.0
+        max_dd = 0.0
+        for p in pnls:
+            equity += p
+            if equity > peak:
+                peak = equity
+            dd = peak - equity
             if dd > max_dd:
                 max_dd = dd
 
-        # By Strategy
+        # أداء كل استراتيجية
         by_strategy: Dict[str, Dict] = {}
         for t in trades:
-            s = t["strategy"] or "unknown"
+            s = t.get("strategy") or "unknown"
             if s not in by_strategy:
                 by_strategy[s] = {"total": 0, "wins": 0, "pnl": 0.0}
             by_strategy[s]["total"] += 1
-            by_strategy[s]["pnl"]   += t["pnl"]
-            if t["pnl"] > 0:
+            by_strategy[s]["pnl"]   += t.get("pnl") or 0.0
+            if (t.get("pnl") or 0) > 0:
                 by_strategy[s]["wins"] += 1
-        for s in by_strategy:
-            t_ = by_strategy[s]["total"]
-            by_strategy[s]["win_rate"] = round(
-                by_strategy[s]["wins"] / t_ * 100, 1) if t_ else 0.0
-            by_strategy[s]["pnl"] = round(by_strategy[s]["pnl"], 2)
+        for s, v in by_strategy.items():
+            v["win_rate"] = round(v["wins"] / v["total"] * 100, 1) if v["total"] else 0.0
 
-        # By Symbol
+        # أداء كل رمز
         by_symbol: Dict[str, Dict] = {}
         for t in trades:
-            sym = t["symbol"] or "unknown"
+            sym = t.get("symbol") or "unknown"
             if sym not in by_symbol:
                 by_symbol[sym] = {"total": 0, "wins": 0, "pnl": 0.0}
             by_symbol[sym]["total"] += 1
-            by_symbol[sym]["pnl"]   += t["pnl"]
-            if t["pnl"] > 0:
+            by_symbol[sym]["pnl"]   += t.get("pnl") or 0.0
+            if (t.get("pnl") or 0) > 0:
                 by_symbol[sym]["wins"] += 1
-        for sym in by_symbol:
-            t_ = by_symbol[sym]["total"]
-            by_symbol[sym]["win_rate"] = round(
-                by_symbol[sym]["wins"] / t_ * 100, 1) if t_ else 0.0
-
-        # By Direction
-        by_dir: Dict[str, Dict] = {}
-        for t in trades:
-            d = t["direction"] or "unknown"
-            if d not in by_dir:
-                by_dir[d] = {"total": 0, "wins": 0}
-            by_dir[d]["total"] += 1
-            if t["pnl"] > 0:
-                by_dir[d]["wins"] += 1
-        for d in by_dir:
-            t_ = by_dir[d]["total"]
-            by_dir[d]["win_rate"] = round(
-                by_dir[d]["wins"] / t_ * 100, 1) if t_ else 0.0
-
-        # Best / Worst strategy
-        sorted_strat = sorted(by_strategy.items(),
-                               key=lambda x: x[1].get("win_rate", 0), reverse=True)
-        best_strategy  = sorted_strat[0][0] if sorted_strat else "—"
-        worst_strategy = sorted_strat[-1][0] if len(sorted_strat) > 1 else "—"
+        for sym, v in by_symbol.items():
+            v["win_rate"] = round(v["wins"] / v["total"] * 100, 1) if v["total"] else 0.0
 
         return {
-            "total":          len(trades),
-            "wins":           len(wins),
-            "losses":         len(losses),
-            "win_rate":       round(len(wins) / len(trades) * 100, 1),
-            "total_pnl":      round(total_pnl, 2),
-            "avg_pnl":        round(total_pnl / len(trades), 2),
-            "max_win":        round(max(t["pnl"] for t in trades), 2),
-            "max_loss":       round(min(t["pnl"] for t in trades), 2),
-            "profit_factor":  profit_factor,
-            "drawdown_max":   round(max_dd, 2),
-            "by_strategy":    by_strategy,
-            "by_symbol":      by_symbol,
-            "by_direction":   by_dir,
-            "best_strategy":  best_strategy,
-            "worst_strategy": worst_strategy,
+            "total":         total,
+            "wins":          wins,
+            "losses":        losses,
+            "win_rate":      round(wins / total * 100, 1),
+            "total_pnl":     round(total_pnl, 2),
+            "avg_win":       round(avg_win, 2),
+            "avg_loss":      round(avg_loss, 2),
+            "best_trade":    round(best, 2),
+            "worst_trade":   round(worst, 2),
+            "profit_factor": profit_factor,
+            "max_drawdown":  round(max_dd, 2),
+            "by_strategy":   by_strategy,
+            "by_symbol":     by_symbol,
         }
+
+    # ─────────────────────────────────────────────
+    # جلب بيانات Vol Regime من DB
+    # ─────────────────────────────────────────────
+
+    def _fetch_vol_summary(self) -> Dict:
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=5)
+            cur  = conn.cursor()
+            cur.execute(
+                "SELECT value FROM beliefs WHERE key='trading:volatility_state' "
+                "ORDER BY updated_at DESC LIMIT 1"
+            )
+            row = conn.execute(
+                "SELECT value FROM beliefs WHERE key='trading:blocked' "
+                "ORDER BY updated_at DESC LIMIT 20"
+            ).fetchall()
+            conn.close()
+            blocks = len(row) if row else 0
+            return {"circuit_blocks_today": blocks}
+        except Exception:
+            return {"circuit_blocks_today": 0}
 
     # ─────────────────────────────────────────────
     # بناء التقرير
     # ─────────────────────────────────────────────
 
-    def generate_report(self, days: int = 1) -> Dict:
-        """يُولّد التقرير الكامل ويحفظه في DB"""
-        logger.info(f"\n" + "─" * 55)
-        logger.info(f"📊 [REPORTER] تقرير أداء آخر {days} يوم...")
-        logger.info("─" * 55)
+    def generate_report(self, since_hours: int = 24) -> Dict:
+        """
+        يُنشئ تقرير الأداء ويُخزّنه في DB.
+        يُعيد dict التقرير.
+        """
+        logger.info(f"\n{'─'*55}")
+        logger.info(f"📊 [REPORTER] توليد تقرير آخر {since_hours} ساعة...")
+        logger.info(f"{'─'*55}")
 
-        trades    = self._fetch_trades(days=days)
-        analysis  = self._analyze(trades)
-        yesterday = self._fetch_yesterday_report()
+        trades      = self._fetch_trades(since_hours)
+        stats       = self._compute_stats(trades)
+        vol_summary = self._fetch_vol_summary()
+        prev        = self._fetch_prev_report()
 
-        # دلتا مقارنةً بالأمس
-        wr_delta  = round(analysis["win_rate"] - yesterday.get("win_rate", analysis["win_rate"]), 1)
-        pnl_delta = round(analysis["total_pnl"] - yesterday.get("total_pnl", 0.0), 2)
+        # المقارنة مع أمس
+        wr_delta   = round(stats["win_rate"]   - prev.get("win_rate", stats["win_rate"]), 1)
+        pnl_delta  = round(stats["total_pnl"]  - prev.get("total_pnl", 0.0), 2)
 
-        # Vol regime من DB
-        vol_regime = "UNKNOWN"
-        vol_switches = 0
+        # أفضل وأسوأ استراتيجية
+        strats = stats["by_strategy"]
+        best_strategy  = max(strats, key=lambda s: strats[s]["win_rate"], default="—")
+        worst_strategy = min(strats, key=lambda s: strats[s]["win_rate"], default="—")
+
+        # آخر درس
+        last_lesson = ""
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            cur.execute("SELECT value FROM beliefs WHERE key='volatility:regime_history' LIMIT 1")
-            row = cur.fetchone()
-            if row:
-                hist = json.loads(row[0])
-                if hist:
-                    vol_regime   = hist[-1].get("regime", "UNKNOWN")
-                    vol_switches = len(hist)
-            conn.close()
-        except Exception:
-            pass
-
-        # Circuit breaker count
-        cb_count = 0
-        try:
-            conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            cur.execute("SELECT value FROM beliefs WHERE key='trading:blocked' LIMIT 1")
-            row = cur.fetchone()
-            if row:
-                cb_count = json.loads(row[0]).get("count", 0)
-            conn.close()
-        except Exception:
-            pass
-
-        # أفضل درس من TradingMemoryBridge
-        top_lesson = "لا دروس بعد"
-        try:
-            conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
+            cur  = conn.cursor()
             cur.execute(
                 "SELECT value FROM beliefs WHERE key LIKE 'trading:lesson:%' "
                 "ORDER BY updated_at DESC LIMIT 1"
             )
             row = cur.fetchone()
             if row:
-                top_lesson = json.loads(row[0]).get("lesson", top_lesson)
+                lesson_data = json.loads(row[0])
+                last_lesson = lesson_data.get("lesson") or lesson_data.get("text", "")
             conn.close()
         except Exception:
             pass
 
         report = {
-            "date":           datetime.now().strftime("%Y-%m-%d"),
-            "period_days":    days,
-            "win_rate":       analysis["win_rate"],
-            "win_rate_delta": wr_delta,
-            "total_pnl":      analysis["total_pnl"],
-            "pnl_delta":      pnl_delta,
-            "total_trades":   analysis["total"],
-            "profit_factor":  analysis["profit_factor"],
-            "drawdown_max":   analysis["drawdown_max"],
-            "best_strategy":  analysis["best_strategy"],
-            "worst_strategy": analysis["worst_strategy"],
-            "by_strategy":    analysis["by_strategy"],
-            "by_symbol":      analysis["by_symbol"],
-            "by_direction":   analysis["by_direction"],
-            "vol_regime":     vol_regime,
-            "vol_switches":   vol_switches,
-            "circuit_breaks": cb_count,
-            "top_lesson":     top_lesson,
-            "generated_at":   datetime.now().isoformat(),
+            "generated_at":     datetime.now().isoformat(),
+            "period_hours":     since_hours,
+            "win_rate":         stats["win_rate"],
+            "win_rate_delta":   wr_delta,
+            "total_pnl":        stats["total_pnl"],
+            "pnl_delta":        pnl_delta,
+            "total_trades":     stats["total"],
+            "wins":             stats["wins"],
+            "losses":           stats["losses"],
+            "avg_win":          stats["avg_win"],
+            "avg_loss":         stats["avg_loss"],
+            "profit_factor":    stats["profit_factor"],
+            "max_drawdown":     stats["max_drawdown"],
+            "best_strategy":    best_strategy,
+            "worst_strategy":   worst_strategy,
+            "circuit_blocks":   vol_summary["circuit_blocks_today"],
+            "last_lesson":      last_lesson,
+            "by_strategy":      strats,
+            "by_symbol":        stats["by_symbol"],
         }
 
-        # ── طباعة التقرير ──
+        # طباعة التقرير في اللوج
         self._print_report(report)
 
-        # ── حفظ في DB ──
+        # حفظ في DB
+        self._save_report(report)
+
+        return report
+
+    def _print_report(self, r: Dict):
+        wr_sign  = f"+{r['win_rate_delta']}" if r['win_rate_delta'] >= 0 else str(r['win_rate_delta'])
+        pnl_sign = f"+${r['pnl_delta']:.2f}" if r['pnl_delta'] >= 0 else f"-${abs(r['pnl_delta']):.2f}"
+        logger.info("")
+        logger.info(f"{'━'*48}")
+        logger.info(f"📊 NOOGH Daily Trading Report — {datetime.now().strftime('%Y-%m-%d')}")
+        logger.info(f"{'━'*48}")
+        logger.info(f"   Win Rate:       {r['win_rate']}%   ({wr_sign}% vs prev)")
+        logger.info(f"   PnL Today:      ${r['total_pnl']:.2f}   ({pnl_sign})")
+        logger.info(f"   Trades:         {r['total_trades']}  ({r['wins']}W / {r['losses']}L)")
+        logger.info(f"   Profit Factor:  {r['profit_factor']}")
+        logger.info(f"   Max Drawdown:   ${r['max_drawdown']:.2f}")
+        logger.info(f"   Best Strategy:  {r['best_strategy']}")
+        logger.info(f"   Worst Strategy: {r['worst_strategy']}")
+        logger.info(f"   Circuit Blocks: {r['circuit_blocks']}x")
+        if r['last_lesson']:
+            logger.info(f"   Top Lesson:     {r['last_lesson'][:60]}")
+        logger.info(f"{'━'*48}")
+        logger.info("")
+
+    def _save_report(self, report: Dict):
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
+            cur  = conn.cursor()
+            # احفظ الحالي كـ prev قبل الكتابة
+            cur.execute("SELECT value FROM beliefs WHERE key='trading:daily_report'")
+            existing = cur.fetchone()
+            if existing:
+                cur.execute(
+                    "INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at) "
+                    "VALUES (?, ?, ?, ?)",
+                    ("trading:daily_report_prev", existing[0], 0.80, time.time())
+                )
+            # احفظ التقرير الجديد
             cur.execute(
                 "INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at) "
                 "VALUES (?, ?, ?, ?)",
@@ -287,38 +325,24 @@ class TradingPerformanceReporter:
             )
             conn.commit()
             conn.close()
-            logger.info("  💾 Report saved to DB: trading:daily_report")
+            logger.info("  ✅ Report saved to DB")
         except Exception as e:
-            logger.error(f"  ❌ Failed to save report: {e}")
+            logger.error(f"  ❌ save_report error: {e}")
 
-        return report
 
-    def _print_report(self, r: Dict):
-        wr_sign  = "+" if r["win_rate_delta"] >= 0 else ""
-        pnl_sign = "+" if r["pnl_delta"] >= 0 else ""
-        logger.info(f"\n" + "━" * 50)
-        logger.info(f"  📊 NOOGH Trading Report — {r['date']}")
-        logger.info("━" * 50)
-        logger.info(f"  Win Rate:       {r['win_rate']}%  ({wr_sign}{r['win_rate_delta']}% vs prev)")
-        logger.info(f"  PnL:            ${r['total_pnl']}  ({pnl_sign}${r['pnl_delta']})")
-        logger.info(f"  Total Trades:   {r['total_trades']}")
-        logger.info(f"  Profit Factor:  {r['profit_factor']}")
-        logger.info(f"  Max Drawdown:   ${r['drawdown_max']}")
-        logger.info(f"  Best Strategy:  {r['best_strategy']}")
-        logger.info(f"  Worst Strategy: {r['worst_strategy']}")
-        logger.info(f"  Vol Regime:     {r['vol_regime']} ({r['vol_switches']} switches)")
-        logger.info(f"  Circuit Breaks: {r['circuit_breaks']}x")
-        logger.info(f"  Top Lesson:     {r['top_lesson'][:60]}")
-        logger.info("━" * 50)
+_reporter_instance: TradingPerformanceReporter = None
+
+def get_reporter() -> TradingPerformanceReporter:
+    global _reporter_instance
+    if _reporter_instance is None:
+        _reporter_instance = TradingPerformanceReporter()
+    return _reporter_instance
 
 
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("--days", type=int, default=1)
-    p.add_argument("--weekly", action="store_true")
+    p.add_argument("--hours", type=int, default=24)
     args = p.parse_args()
-    days = 7 if args.weekly else args.days
-    reporter = TradingPerformanceReporter()
-    report = reporter.generate_report(days=days)
+    report = get_reporter().generate_report(since_hours=args.hours)
     print(json.dumps(report, ensure_ascii=False, indent=2))

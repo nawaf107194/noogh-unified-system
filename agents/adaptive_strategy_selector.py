@@ -3,104 +3,62 @@
 NOOGH Adaptive Strategy Selector
 ----------------------------------
 يُحلّل أداء كل استراتيجية في كل Vol Regime
-ويكتب في DB قائمة الاستراتيجيات المُفضَّلة والمُعطَّلة
-لتقرأها autonomous_trading_agent قبل كل دورة
+ويكتب الأولويات في DB لـ autonomous_trading_agent.
+
+يُستدعى من الـ Orchestrator كل دورتين.
 """
 
 import sys, os, json, time, sqlite3, logging
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 sys.path.insert(0, "/home/noogh/projects/noogh_unified_system/src")
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | adaptive_selector | %(message)s",
+    format="%(asctime)s | %(levelname)s | strategy_selector | %(message)s",
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler(
-            "/home/noogh/projects/noogh_unified_system/src/logs/adaptive_selector.log"
+            "/home/noogh/projects/noogh_unified_system/src/logs/strategy_selector.log"
         ),
     ]
 )
-logger = logging.getLogger("adaptive_selector")
+logger = logging.getLogger("strategy_selector")
 
 SRC     = "/home/noogh/projects/noogh_unified_system/src"
 DB_PATH = f"{SRC}/data/shared_memory.sqlite"
 
-# حد Win Rate للاستراتيجية: أقل من هذا → مُعطَّلة في هذا الـ regime
-DISABLE_THRESHOLD  = 40.0   # %
-# حد للأفضلية: أعلى من هذا → مُفضَّلة
-PREFER_THRESHOLD   = 58.0   # %
-# حد الحد الأدنى من الصفقات للحكم
-MIN_SAMPLE         = 5
+# الحد الأدنى للصفقات قبل الحكم على استراتيجية
+MIN_TRADES_TO_JUDGE = 5
+# Win Rate أدنى من هذا → معطّلة في هذا الـ Regime
+DISABLE_THRESHOLD   = 0.40
+# Win Rate أعلى من هذا → مُفضَّلة
+PREFER_THRESHOLD    = 0.58
 
 
 class AdaptiveStrategySelector:
     """
-    يُحلّل paper_trades مجمّعةً حسب (strategy × vol_regime)
-    ويُصدر توصية يقرأها autonomous_trading_agent
+    يختار الاستراتيجيات المناسبة بناءً على:
+      - الـ Vol Regime الحالي
+      - أداء كل استراتيجية في هذا الـ Regime تاريخياً
     """
 
     def __init__(self):
-        logger.info("🧠 AdaptiveStrategySelector initialized")
+        logger.info("🎯 AdaptiveStrategySelector initialized")
 
     # ─────────────────────────────────────────────
-    # جلب البيانات
+    # قراءة البيانات
     # ─────────────────────────────────────────────
-
-    def _fetch_trades_with_regime(self, limit: int = 500) -> List[Dict]:
-        """يجلب أحدث N صفقة مع vol_regime إذا متاح"""
-        trades = []
-        try:
-            conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
-            # نحاول جلب vol_regime من عمود meta أو context
-            cur.execute(
-                "SELECT symbol, strategy, pnl, confidence, "
-                "COALESCE(vol_regime, 'UNKNOWN') as regime "
-                "FROM paper_trades ORDER BY closed_at DESC LIMIT ?",
-                (limit,)
-            )
-            for row in cur.fetchall():
-                trades.append({
-                    "symbol":    row[0],
-                    "strategy":  row[1] or "unknown",
-                    "pnl":       row[2] or 0.0,
-                    "confidence": row[3] or 0.0,
-                    "regime":    row[4] or "UNKNOWN",
-                })
-            conn.close()
-        except Exception:
-            # إذا لم يوجد عمود vol_regime، نجلب بدونه
-            try:
-                conn = sqlite3.connect(DB_PATH, timeout=5)
-                cur = conn.cursor()
-                cur.execute(
-                    "SELECT symbol, strategy, pnl, confidence "
-                    "FROM paper_trades ORDER BY closed_at DESC LIMIT ?",
-                    (limit,)
-                )
-                for row in cur.fetchall():
-                    trades.append({
-                        "symbol":    row[0],
-                        "strategy":  row[1] or "unknown",
-                        "pnl":       row[2] or 0.0,
-                        "confidence": row[3] or 0.0,
-                        "regime":    "UNKNOWN",
-                    })
-                conn.close()
-            except Exception as e:
-                logger.warning(f"  ⚠️ fetch_trades error: {e}")
-        return trades
 
     def _get_current_regime(self) -> str:
-        """يجلب الـ Vol Regime الحالي من DB"""
+        """يقرأ الـ Vol Regime الحالي من DB"""
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
+            cur  = conn.cursor()
             cur.execute(
-                "SELECT value FROM beliefs WHERE key='volatility:current_regime' LIMIT 1"
+                "SELECT value FROM beliefs WHERE key='trading:volatility_state' "
+                "ORDER BY updated_at DESC LIMIT 1"
             )
             row = cur.fetchone()
             conn.close()
@@ -111,143 +69,153 @@ class AdaptiveStrategySelector:
             pass
         return "NORMAL"
 
+    def _fetch_trades_by_regime(self, regime: str, limit: int = 200) -> List[Dict]:
+        """يجلب الصفقات التي نُفِّذت في نفس الـ Regime"""
+        trades = []
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=5)
+            cur  = conn.cursor()
+            try:
+                cur.execute(
+                    "SELECT strategy, pnl, confidence FROM paper_trades "
+                    "WHERE vol_regime = ? ORDER BY created_at DESC LIMIT ?",
+                    (regime, limit)
+                )
+                for r in cur.fetchall():
+                    trades.append({"strategy": r[0], "pnl": r[1], "confidence": r[2]})
+            except Exception:
+                # fallback: جلب كل الصفقات بدون فلتر regime
+                cur.execute(
+                    "SELECT strategy, pnl FROM paper_trades "
+                    "ORDER BY created_at DESC LIMIT ?", (limit,)
+                )
+                for r in cur.fetchall():
+                    trades.append({"strategy": r[0], "pnl": r[1], "confidence": 0.5})
+            conn.close()
+        except Exception as e:
+            logger.warning(f"  ⚠️ fetch_trades_by_regime: {e}")
+        return trades
+
     # ─────────────────────────────────────────────
-    # التحليل
+    # تحليل الأداء
     # ─────────────────────────────────────────────
 
-    def _analyze_by_regime(self, trades: List[Dict]) -> Dict[str, Dict[str, Dict]]:
-        """
-        يُجمّع أداء كل استراتيجية في كل regime
-        returns: {regime: {strategy: {total, wins, win_rate, avg_pnl}}}
-        """
-        matrix: Dict[str, Dict] = {}
+    def _analyze_strategies(self, trades: List[Dict]) -> Dict[str, Dict]:
+        """يحسب أداء كل استراتيجية"""
+        perf: Dict[str, Dict] = {}
         for t in trades:
-            reg  = t["regime"]
-            strat = t["strategy"]
-            if reg not in matrix:
-                matrix[reg] = {}
-            if strat not in matrix[reg]:
-                matrix[reg][strat] = {"total": 0, "wins": 0, "pnl_sum": 0.0}
-            matrix[reg][strat]["total"]   += 1
-            matrix[reg][strat]["pnl_sum"] += t["pnl"]
-            if t["pnl"] > 0:
-                matrix[reg][strat]["wins"] += 1
+            s = t.get("strategy") or "unknown"
+            if s not in perf:
+                perf[s] = {"total": 0, "wins": 0, "pnl": 0.0}
+            perf[s]["total"] += 1
+            perf[s]["pnl"]   += t.get("pnl") or 0.0
+            if (t.get("pnl") or 0) > 0:
+                perf[s]["wins"] += 1
 
-        # حساب win_rate و avg_pnl
-        for reg in matrix:
-            for strat in matrix[reg]:
-                d = matrix[reg][strat]
-                d["win_rate"] = round(d["wins"] / d["total"] * 100, 1) if d["total"] else 0.0
-                d["avg_pnl"]  = round(d["pnl_sum"] / d["total"], 2) if d["total"] else 0.0
-
-        return matrix
-
-    def _build_recommendations(self, matrix: Dict, current_regime: str) -> Dict:
-        """
-        يبني قائمة الاستراتيجيات المُفضَّلة والمُعطَّلة للـ regime الحالي
-        """
-        preferred: List[str] = []
-        disabled:  List[str] = []
-        reasoning: Dict[str, str] = {}
-
-        # نبحث في UNKNOWN + الـ regime الحالي
-        regimes_to_check = [current_regime, "UNKNOWN"]
-        strategy_scores: Dict[str, List[float]] = {}
-
-        for reg in regimes_to_check:
-            if reg not in matrix:
-                continue
-            for strat, data in matrix[reg].items():
-                if data["total"] < MIN_SAMPLE:
-                    continue
-                if strat not in strategy_scores:
-                    strategy_scores[strat] = []
-                strategy_scores[strat].append(data["win_rate"])
-
-        for strat, scores in strategy_scores.items():
-            avg_wr = sum(scores) / len(scores)
-            if avg_wr >= PREFER_THRESHOLD:
-                preferred.append(strat)
-                reasoning[strat] = f"WR={avg_wr:.1f}% ✅"
-            elif avg_wr < DISABLE_THRESHOLD:
-                disabled.append(strat)
-                reasoning[strat] = f"WR={avg_wr:.1f}% ❌"
-
-        # ترتيب preferred حسب الأفضل
-        if current_regime in matrix:
-            preferred.sort(
-                key=lambda s: matrix[current_regime].get(s, {}).get("win_rate", 0),
-                reverse=True
-            )
-
-        return {
-            "regime":            current_regime,
-            "preferred_strategies": preferred,
-            "disabled_strategies":  disabled,
-            "reasoning":         reasoning,
-            "min_sample":        MIN_SAMPLE,
-            "updated_at":        datetime.now().isoformat(),
-        }
+        for s, v in perf.items():
+            v["win_rate"] = round(v["wins"] / v["total"], 3) if v["total"] else 0.0
+            v["avg_pnl"]  = round(v["pnl"] / v["total"], 2)  if v["total"] else 0.0
+        return perf
 
     # ─────────────────────────────────────────────
     # الواجهة الرئيسية
     # ─────────────────────────────────────────────
 
-    def run(self) -> Dict:
-        logger.info("\n" + "─" * 55)
-        logger.info("🧠 [ADAPTIVE] تحليل أداء الاستراتيجيات...")
-        logger.info("─" * 55)
+    def select_and_publish(self) -> Dict:
+        """
+        يُحدّد الاستراتيجيات المُفضَّلة والمُعطَّلة
+        ويكتبها في DB.
+        """
+        regime = self._get_current_regime()
+        logger.info(f"\n{'─'*55}")
+        logger.info(f"🎯 [STRATEGY SELECTOR] Regime الحالي: {regime}")
+        logger.info(f"{'─'*55}")
 
-        trades         = self._fetch_trades_with_regime(limit=500)
-        current_regime = self._get_current_regime()
-        matrix         = self._analyze_by_regime(trades)
-        recommendations = self._build_recommendations(matrix, current_regime)
+        trades = self._fetch_trades_by_regime(regime)
+        perf   = self._analyze_strategies(trades)
 
-        # لوج
-        logger.info(f"  📊 Regime: {current_regime} | Trades analyzed: {len(trades)}")
-        if recommendations["preferred_strategies"]:
-            logger.info(f"  ✅ Preferred: {recommendations['preferred_strategies']}")
-        if recommendations["disabled_strategies"]:
-            logger.info(f"  ❌ Disabled:  {recommendations['disabled_strategies']}")
-        if not recommendations["preferred_strategies"] and not recommendations["disabled_strategies"]:
-            logger.info("  ℹ️  بيانات غير كافية بعد — كل الاستراتيجيات مسموحة")
+        preferred = []
+        disabled  = []
+        neutral   = []
 
-        # حفظ في DB
+        for strategy, v in perf.items():
+            if v["total"] < MIN_TRADES_TO_JUDGE:
+                neutral.append(strategy)  # بيانات غير كافية
+                continue
+            if v["win_rate"] >= PREFER_THRESHOLD:
+                preferred.append(strategy)
+            elif v["win_rate"] <= DISABLE_THRESHOLD:
+                disabled.append(strategy)
+            else:
+                neutral.append(strategy)
+
+        # ترتيب المُفضَّلة حسب win_rate
+        preferred.sort(key=lambda s: perf.get(s, {}).get("win_rate", 0), reverse=True)
+
+        result = {
+            "regime":           regime,
+            "preferred":        preferred,
+            "disabled":         disabled,
+            "neutral":          neutral,
+            "strategy_perf":    perf,
+            "updated_at":       datetime.now().isoformat(),
+            "trades_analyzed":  len(trades),
+        }
+
+        logger.info(f"  ✅ مُفضَّلة ({len(preferred)}): {preferred}")
+        logger.info(f"  ❌ مُعطَّلة ({len(disabled)}): {disabled}")
+        logger.info(f"  ➖ محايدة  ({len(neutral)}):  {neutral}")
+
+        # كتابة في DB ليقرأها autonomous_trading_agent
+        self._publish(result)
+        return result
+
+    def _publish(self, result: Dict):
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
-            cur = conn.cursor()
+            cur  = conn.cursor()
             cur.execute(
                 "INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at) "
                 "VALUES (?, ?, ?, ?)",
-                ("trading:strategy_recommendations",
-                 json.dumps(recommendations, ensure_ascii=False),
+                ("trading:strategy_selection",
+                 json.dumps(result, ensure_ascii=False),
                  0.95, time.time())
-            )
-            # حفظ المصفوفة الكاملة أيضاً
-            cur.execute(
-                "INSERT OR REPLACE INTO beliefs (key, value, utility_score, updated_at) "
-                "VALUES (?, ?, ?, ?)",
-                ("trading:strategy_matrix",
-                 json.dumps(matrix, ensure_ascii=False),
-                 0.90, time.time())
             )
             conn.commit()
             conn.close()
-            logger.info("  💾 Recommendations saved → trading:strategy_recommendations")
+            logger.info("  💾 Strategy selection saved to DB")
         except Exception as e:
-            logger.error(f"  ❌ Save error: {e}")
+            logger.error(f"  ❌ publish error: {e}")
 
-        return recommendations
+    def get_current_selection(self) -> Dict:
+        """يقرأ آخر selection من DB"""
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=5)
+            cur  = conn.cursor()
+            cur.execute(
+                "SELECT value FROM beliefs WHERE key='trading:strategy_selection' LIMIT 1"
+            )
+            row = cur.fetchone()
+            conn.close()
+            return json.loads(row[0]) if row else {}
+        except Exception:
+            return {}
 
 
-def get_adaptive_selector() -> AdaptiveStrategySelector:
-    """Singleton helper"""
-    if not hasattr(get_adaptive_selector, "_instance"):
-        get_adaptive_selector._instance = AdaptiveStrategySelector()
-    return get_adaptive_selector._instance
+_selector_instance = None
+
+def get_strategy_selector() -> AdaptiveStrategySelector:
+    global _selector_instance
+    if _selector_instance is None:
+        _selector_instance = AdaptiveStrategySelector()
+    return _selector_instance
 
 
 if __name__ == "__main__":
-    selector = AdaptiveStrategySelector()
-    result = selector.run()
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    sel = get_strategy_selector()
+    result = sel.select_and_publish()
+    print(json.dumps({
+        "regime":    result["regime"],
+        "preferred": result["preferred"],
+        "disabled":  result["disabled"],
+    }, ensure_ascii=False, indent=2))
